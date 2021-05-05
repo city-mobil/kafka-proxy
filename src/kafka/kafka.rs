@@ -6,10 +6,9 @@ pub mod config {
     const DEFAULT_PASSWORD: &str = "";
     const DEFAULT_MESSAGE_MAX_BYTES: u32 = 1024 * 1024; // 1 MiB
     const DEFAULT_QUEUE_BUFFERING_MAX_MESSAGES: u32 = 100000;
-    const DEFAULT_QUEUE_BUFFERING_MAX_MS: u32 = 10;
-    // NOTE(a.petrukhin): default librdkafka value is '5'
-    const DEFAULT_RETRIES: u32 = 3; // NOTE(a.petrukhin): default is 2^32 - 1
-    const DEFAULT_MESSAGE_TIMEOUT_MS: u32 = 2000; // NOTE(a.petrukhin): default is 300000
+    const DEFAULT_QUEUE_BUFFERING_MAX_MS: u32 = 10; // librdkafka default value is '5'
+    const DEFAULT_RETRIES: u32 = 3; // librdkafka default is 2^32 - 1
+    const DEFAULT_MESSAGE_TIMEOUT_MS: u32 = 2000; // librdkafka default is 300000
     const DEFAULT_REQUEST_REQUIRED_ACKS: i32 = -1;
     const DEFAULT_REQUEST_TIMEOUT_MS: u32 = 30000;
     const DEFAULT_QUEUE_BUFFERING_MAX_KBYTES: u32 = 1048576;
@@ -27,7 +26,6 @@ pub mod config {
         pub message_timeout_ms: u32,
         pub request_required_acks: i32,
         pub request_timeout_ms: u32,
-        // TODO(a.petrukhin): add more options.
     }
 
     impl Config {

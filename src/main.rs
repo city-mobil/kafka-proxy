@@ -70,7 +70,7 @@ async fn main() {
 
     let metrics_shutdown_rx = start_metrics_server(logger.clone(), shutdown_metrics_rx);
 
-    // TODO(a.petrukhin): adequate graceful shutdown, now it does not look good.
+    // TODO(shmel1k): improve graceful shutdown behavior.
     let main_server_shutdown_rx =
         server.start_server(logger.clone(), kafka_producer.clone(), shutdown_rx);
     tokio::select! {

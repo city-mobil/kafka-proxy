@@ -21,7 +21,6 @@ pub mod filter {
         logger: kflog::Logger,
         kafka_producer: Arc<producer::Producer>,
     ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
-        // TODO(a.petrukhin): add response time.
         warp::path!("push")
             .and(warp::post())
             .and(warp::body::json())
@@ -34,7 +33,7 @@ pub mod filter {
         kafka_producer: Arc<kafka::producer::Producer>,
     ) -> impl Filter<Extract = (Arc<kafka::producer::Producer>,), Error = std::convert::Infallible> + Clone
     {
-        warp::any().map(move || kafka_producer.clone()) // TODO(a.petrukhin): think about performance
+        warp::any().map(move || kafka_producer.clone())
     }
 
     fn with_logger(
@@ -71,8 +70,7 @@ mod handler {
         key: &String,
         topic: &String,
     ) -> Option<KafkaError> {
-        // TODO(a.petrukhin): error handling.
-        // TODO(a.petrukhin): wal is going to be somewhere here...
+        // NOTE(shmel1k): wal log should be implemented here.
         let result = kafka_producer
             .send(&topic, &data, &key, Duration::from_millis(100))
             .await;
@@ -100,7 +98,6 @@ mod handler {
         logger: kflog::Logger,
         kafka_producer: Arc<Producer>,
     ) -> Result<impl Reply, Infallible> {
-        // TODO(a.petrukhin): add result.
         let request_id = generate_request_id();
         let start = SystemTime::now();
 
@@ -177,7 +174,7 @@ mod handler {
             logger,
             "proceeded_request";
             "request_id" => request_id,
-            "passed" => (passed).to_string() + "ms", // NOTE(a.petrukhin): does not look good.
+            "passed" => (passed).to_string() + "ms",
             "error" => &err,
         );
         return result;

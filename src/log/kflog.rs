@@ -11,7 +11,6 @@ pub fn new_logger(output: &String) -> Logger {
         output_path = output;
     }
 
-    // TODO(a.petrukhin): refactor.
     if output_path != DEFAULT_OUTPUT && output_path != "" {
         let file = std::fs::OpenOptions::new()
             .write(true)
@@ -33,7 +32,6 @@ pub fn new_logger(output: &String) -> Logger {
         .add_default_keys()
         .build()
         .fuse();
-    // TODO(a.petrukhin): think about chan_size.
     let async_drain = slog_async::Async::new(drain).build();
     let logger = slog::Logger::root(async_drain.fuse(), slog::o!("service" => "kprf"));
     return Arc::new(logger);
