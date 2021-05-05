@@ -1,0 +1,12 @@
+
+kafka:
+  brokers:
+    - '127.0.0.1:9092'
+  request_required_acks: 1
+  queue_buffering_max_ms: 20
+  queue_buffering_max_kbytes: 2048 # 2 MiB
+
+http:
+  port: 4242
+
+output_file: "/dev/stdout"
