@@ -104,10 +104,10 @@ mod handler {
         // NOTE(a.petrukhin): sharding is based on uuid from request.
         // It leads to allocations.
         let request_id_cloned = request_id.clone();
-        let is_async_request = req.wait_for_send;
+        let is_sync_request = req.wait_for_send;
         let mut err = String::from("");
         let logger_cloned = logger.clone();
-        if is_async_request.is_none() || !is_async_request.unwrap() {
+        if is_sync_request.is_none() || !is_sync_request.unwrap() {
             tokio::spawn(async move {
                 push_async(
                     &logger_cloned,
@@ -161,9 +161,9 @@ mod handler {
             ));
         }
 
-        let mut method = "push/sync";
-        if is_async_request.is_some() && is_async_request.unwrap() {
-            method = "push/async";
+        let mut method = "push/async";
+        if is_sync_request.is_some() && is_sync_request.unwrap() {
+            method = "push/sync";
         }
 
         REQUEST_DURATION
