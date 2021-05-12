@@ -31,7 +31,7 @@ impl Server {
         shutdown_rx: Receiver<String>,
     ) -> Receiver<i8> {
         let logger_cloned = logger.clone();
-        let routes = handlers::filter::new_pusher_api(logger, kafka_producer);
+        let routes = handlers::filter::new_api(logger.clone(), kafka_producer.clone());
 
         let (shutdown_completed_tx, shutdown_completed_rx) = oneshot::channel::<i8>();
 

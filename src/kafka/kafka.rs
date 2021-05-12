@@ -221,7 +221,7 @@ pub mod producer {
             &self,
             topic: &String,
             data: &String,
-            key: &String,
+            key: Option<&String>,
             timeout: Duration,
         ) -> OwnedDeliveryResult {
             self.queue_size_gauge.with_label_values(&[&topic]).inc();
@@ -232,7 +232,7 @@ pub mod producer {
                 topic,
                 partition: None,
                 payload: Some(data),
-                key: Some(key),
+                key,
                 timestamp: None,
                 headers: None,
             };

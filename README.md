@@ -43,8 +43,8 @@ Following examples work if kafka-proxy is set up and running.
 
 ```
 # Try asynchronous producing
-curl 'http://127.0.0.1:4242/push' -H 'Content-Type: application/json' -d '{"topic": "SOME_TOPIC", "data": "{"a": "b"}",
-"wait_for_send": true}'
+curl 'http://127.0.0.1:4242/push' -H 'Content-Type: application/json' -d '{"records": [{"topic": "SOME_TOPIC", "data": "{"\a"\: "\b"\}"}],
+"wait_for_send": false}'
 ```
 
 JSON Fields:
@@ -152,5 +152,13 @@ otherwise, `push/async` is set. `code` label is set according to HTTP response s
 - `kafka_internal_queue_size` - Gauge of internal kafka-queue size, per topic.
 - `kafka_message_send_duration` - Histogram of kafka message duration before delivery result callback is received, per topic.
 - `kafka_sent_messages` - Counter of total kafka messages sent, per topic.
+- `kafka_errors_count` - Counter of total kafka errors, per topic.
 
 ## Further improvements
+
+1. `Write-Ahead-Log`. Write-Ahead-Log can be a good improvement if pattern of usage is asynchronous producing. Client does not know
+if his records were successfully sent to kafka. Adding `WAL` can improve durability.
+
+2. Configuration improvement. ENVIRONMENT configuration is not supported yet.
+
+3. Internal librdkafka statistics exporting. A lot of information can be collected from internal librdkafka stats.
