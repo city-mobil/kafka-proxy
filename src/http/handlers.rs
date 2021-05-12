@@ -2,9 +2,15 @@ mod requests {
     use serde::Deserialize;
 
     #[derive(Debug, Deserialize)]
-    pub struct PushRequest {
-        pub topic: String,
+    pub struct Record {
         pub data: String,
+        pub topic: String,
+        pub key: Option<String>,
+    }
+
+    #[derive(Debug, Deserialize)]
+    pub struct PushRequest {
+        pub records: Vec<Record>,
         pub wait_for_send: Option<bool>,
     }
 }
@@ -17,16 +23,16 @@ pub mod filter {
     use std::sync::Arc;
     use warp::Filter;
 
-    pub fn new_pusher_api(
+    pub fn new_api(
         logger: kflog::Logger,
         kafka_producer: Arc<producer::Producer>,
     ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
-        warp::path!("push")
+        return warp::path!("push")
             .and(warp::post())
             .and(warp::body::json())
             .and(with_logger(logger))
             .and(with_kafka_producer(kafka_producer))
-            .and_then(handler::push)
+            .and_then(handler::push);
     }
 
     fn with_kafka_producer(
@@ -48,6 +54,7 @@ mod handler {
     use crate::kafka::kafka::producer::Producer;
     use crate::log::kflog;
     use rdkafka::error::KafkaError;
+    use rdkafka::producer::future_producer::OwnedDeliveryResult;
     use std::convert::Infallible;
     use std::sync::Arc;
     use std::time::{Duration, SystemTime};
@@ -63,34 +70,62 @@ mod handler {
         ).unwrap();
     }
 
+    fn generate_request_id() -> String {
+        Uuid::new_v4().to_string()
+    }
+
     async fn push_async(
         logger: &kflog::Logger,
         kafka_producer: Arc<Producer>,
-        data: &String,
-        key: &String,
-        topic: &String,
+        data: &PushRequest,
+        request_id: &String,
     ) -> Option<KafkaError> {
-        // NOTE(shmel1k): wal log should be implemented here.
-        let result = kafka_producer
-            .send(&topic, &data, &key, Duration::from_millis(100))
-            .await;
-        if !result.is_err() {
+        // NOTE(shmel1k): wal should be implemented here.
+        if data.records.is_empty() {
             return None;
         }
 
-        let (err, _) = result.unwrap_err();
-        slog::error!(
-            logger,
-            "got error when tried to send message";
-            "error" => err.to_string(),
-            "topic" => topic,
-        );
+        let producer = &kafka_producer.clone();
+        let futures = data
+            .records
+            .iter()
+            .map(|record| async move {
+                producer
+                    .send(
+                        &record.topic,
+                        &record.data,
+                        record.key.as_ref(),
+                        Duration::from_millis(100),
+                    )
+                    .await
+            })
+            .collect::<Vec<_>>();
 
-        return Some(err);
-    }
+        let mut error_vec = vec![];
+        for future in futures {
+            let result = future.await;
+            if !result.is_err() {
+                continue;
+            }
 
-    fn generate_request_id() -> String {
-        Uuid::new_v4().to_string()
+            let (err, _) = result.unwrap_err();
+
+            slog::error!(
+                logger,
+                "got error when tried to send message";
+                "error" => err.to_string(),
+                "request_id" => request_id,
+            );
+            error_vec.push(err);
+        }
+
+        // NOTE(shmel1k): return only last error to user. All other errors are logged
+        // in producer.
+        if error_vec.len() > 0 {
+            return error_vec.pop();
+        }
+
+        return None;
     }
 
     pub async fn push(
@@ -109,25 +144,12 @@ mod handler {
         let logger_cloned = logger.clone();
         if is_sync_request.is_none() || !is_sync_request.unwrap() {
             tokio::spawn(async move {
-                push_async(
-                    &logger_cloned,
-                    kafka_producer,
-                    &req.data,
-                    &request_id_cloned,
-                    &req.topic,
-                )
-                .await
+                push_async(&logger_cloned, kafka_producer, &req, &request_id_cloned).await
             });
         } else {
             let req_id = request_id_cloned.clone();
-            let await_result = push_async(
-                &logger_cloned,
-                kafka_producer,
-                &req.data,
-                &request_id_cloned,
-                &req.topic,
-            )
-            .await;
+            let await_result =
+                push_async(&logger_cloned, kafka_producer, &req, &request_id_cloned).await;
             if await_result.is_some() {
                 err = await_result.unwrap().to_string();
                 slog::error!(
