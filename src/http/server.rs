@@ -1,3 +1,4 @@
+use crate::http::api_handler::api::ApiHandler;
 use crate::http::handlers;
 use crate::kafka::kafka;
 use crate::log::kflog;
@@ -31,7 +32,8 @@ impl Server {
         shutdown_rx: Receiver<String>,
     ) -> Receiver<i8> {
         let logger_cloned = logger.clone();
-        let routes = handlers::filter::new_api(logger.clone(), kafka_producer.clone());
+        let api_handler = ApiHandler::new(logger_cloned.clone(), kafka_producer.clone());
+        let routes = handlers::filter::new_api(logger.clone(), api_handler);
 
         let (shutdown_completed_tx, shutdown_completed_rx) = oneshot::channel::<i8>();
 
