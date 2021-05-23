@@ -46,9 +46,17 @@ struct ProduceHelper {
     result: OwnedDeliveryResult,
 }
 
-impl ApiHandler {
-    fn generate_request_id() -> String {
-        Uuid::new_v4().to_string()
+struct Request {
+    logger: kflog::Logger,
+    kafka_producer: Arc<producer::Producer>,
+}
+
+impl Request {
+    pub(crate) fn new(logger: kflog::Logger, kafka_producer: Arc<producer::Producer>) -> Request {
+        Request {
+            logger,
+            kafka_producer,
+        }
     }
 
     async fn produce_records(
@@ -108,7 +116,10 @@ impl ApiHandler {
         Ok(())
     }
 
-    async fn push_async(&self, data: &requests::PushRequest) -> Result<(), Vec<PushResponseError>> {
+    pub(crate) async fn push_async(
+        &self,
+        data: &requests::PushRequest,
+    ) -> Result<(), Vec<PushResponseError>> {
         if data.records.is_empty() {
             return Ok(());
         }
@@ -117,11 +128,19 @@ impl ApiHandler {
         // msg_id for each unique message sent.
         self.produce_records(&data.records).await
     }
+}
 
-    pub async fn handle_push(&'static self, req: &requests::PushRequest) -> requests::PushResponse {
-        if req.wait_for_send.unwrap_or_default() {
+impl ApiHandler {
+    fn generate_request_id() -> String {
+        Uuid::new_v4().to_string()
+    }
+
+    pub async fn handle_push(&self, req: requests::PushRequest) -> requests::PushResponse {
+        let request = Request::new(self.logger.clone(), self.kafka_producer.clone());
+
+        if !req.wait_for_send.unwrap_or_default() {
             tokio::spawn(async move {
-                self.push_async(&req).await;
+                let _ = request.push_async(&req).await;
             });
             return requests::PushResponse {
                 status: "ok".to_string(),
@@ -131,7 +150,7 @@ impl ApiHandler {
 
         // TODO(a.petrukhin): return back after context implementation.
         // let req_id = request_id_cloned.clone();
-        let await_result = self.push_async(&req).await;
+        let await_result = request.push_async(&req).await;
         if !await_result.is_err() {
             return requests::PushResponse {
                 status: "ok".to_string(),
@@ -160,13 +179,10 @@ impl ApiHandler {
         }
     }
 
-    pub fn new(
-        logger: kflog::Logger,
-        kafka_producer: Arc<producer::Producer>,
-    ) -> &'static ApiHandler {
-        &ApiHandler {
+    pub fn new(logger: kflog::Logger, kafka_producer: Arc<producer::Producer>) -> Arc<ApiHandler> {
+        Arc::new(ApiHandler {
             logger,
             kafka_producer,
-        }
+        })
     }
 }

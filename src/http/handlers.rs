@@ -2,11 +2,12 @@ pub mod filter {
     use super::handler;
     use crate::http::api_handler::api::ApiHandler;
     use crate::log::kflog;
+    use std::sync::Arc;
     use warp::Filter;
 
     pub fn new_api(
         logger: kflog::Logger,
-        api_handler: &'static ApiHandler,
+        api_handler: Arc<ApiHandler>,
     ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
         return warp::path!("push")
             .and(warp::post())
@@ -17,10 +18,9 @@ pub mod filter {
     }
 
     fn with_api_handler(
-        handler: &'static ApiHandler,
-    ) -> impl Filter<Extract = (&'static ApiHandler,), Error = std::convert::Infallible> + Clone
-    {
-        warp::any().map(move || handler)
+        handler: Arc<ApiHandler>,
+    ) -> impl Filter<Extract = (Arc<ApiHandler>,), Error = std::convert::Infallible> + Clone {
+        warp::any().map(move || handler.clone())
     }
 
     fn with_logger(
@@ -34,6 +34,7 @@ mod handler {
     use crate::http::api_handler::api::{requests, ApiHandler};
     use crate::log::kflog;
     use std::convert::Infallible;
+    use std::sync::Arc;
     use std::time::SystemTime;
     use uuid::Uuid;
     use warp::Reply;
@@ -54,7 +55,7 @@ mod handler {
     pub async fn push(
         req: requests::PushRequest,
         logger: kflog::Logger,
-        handler: &'static ApiHandler,
+        handler: Arc<ApiHandler>,
     ) -> Result<impl Reply, Infallible> {
         let request_id = generate_request_id();
         let start = SystemTime::now();
@@ -64,7 +65,7 @@ mod handler {
         let request_id_cloned = request_id.clone();
         let is_sync_request = req.wait_for_send;
 
-        let push_result = handler.handle_push(&req).await;
+        let push_result = handler.handle_push(req).await;
 
         let passed_result = SystemTime::now().duration_since(start);
 
