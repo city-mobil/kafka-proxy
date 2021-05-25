@@ -240,12 +240,11 @@ pub mod producer {
             };
 
             let start = SystemTime::now();
-            let producer = self.pool.clone();
-            let conn = producer
+            let conn = self.pool.clone()
                 .get()
                 .map_err(|err| {
                     println!(
-                        "get connection from pool error in line:{} ! error: {:?}",
+                        "kafka: get producer connection from pool error in line:{} ! error: {:?}",
                         line!(),
                         err
                     )
