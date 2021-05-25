@@ -201,12 +201,12 @@ pub mod config {
 }
 
 pub mod producer {
+    use crate::r2d2_kafka::pool::KafkaConnectorManager;
+    use r2d2::Pool;
     use rdkafka::producer::future_producer::OwnedDeliveryResult;
     use rdkafka::producer::FutureRecord;
     use std::sync::Arc;
     use std::time::{Duration, SystemTime};
-    use crate::r2d2_kafka::pool::KafkaConnectorManager;
-    use r2d2::Pool;
 
     const DEFAULT_PRODUCERS_POOL_SIZE: u32 = 4;
 
@@ -241,7 +241,8 @@ pub mod producer {
 
             let start = SystemTime::now();
             let producer = self.pool.clone();
-            let conn = producer.get()
+            let conn = producer
+                .get()
                 .map_err(|err| {
                     println!(
                         "get connection from pool error in line:{} ! error: {:?}",
@@ -278,35 +279,40 @@ pub mod producer {
         }
 
         let manager = KafkaConnectorManager::new(client_config);
-        let pool = Arc::new(r2d2::Pool::builder().max_size(DEFAULT_PRODUCERS_POOL_SIZE).build(manager).unwrap());
+        let pool = Arc::new(
+            r2d2::Pool::builder()
+                .max_size(DEFAULT_PRODUCERS_POOL_SIZE)
+                .build(manager)
+                .unwrap(),
+        );
 
         Arc::new(Producer {
             pool,
             queue_size_gauge: prometheus::register_int_gauge_vec!(
-                    "kafka_internal_queue_size",
-                    "Kafka internal queue size",
-                    &["topic"]
-                )
-                .unwrap(),
+                "kafka_internal_queue_size",
+                "Kafka internal queue size",
+                &["topic"]
+            )
+            .unwrap(),
             error_counter: prometheus::register_int_counter_vec!(
-                    "kafka_errors_count",
-                    "Kafka internal errors count",
-                    &["topic", "error_code"]
-                )
-                .unwrap(),
+                "kafka_errors_count",
+                "Kafka internal errors count",
+                &["topic", "error_code"]
+            )
+            .unwrap(),
             sent_messages_counter: prometheus::register_int_counter_vec!(
-                    "kafka_sent_messages",
-                    "Kafka sent messages count",
-                    &["topic"]
-                )
-                .unwrap(),
+                "kafka_sent_messages",
+                "Kafka sent messages count",
+                &["topic"]
+            )
+            .unwrap(),
             message_send_duration: prometheus::register_histogram_vec!(
-                    "kafka_message_send_duration",
-                    "Kafka message send duration",
-                    &["topic"],
-                    prometheus::exponential_buckets(5.0, 2.0, 5).unwrap()
-                )
-                .unwrap(),
+                "kafka_message_send_duration",
+                "Kafka message send duration",
+                &["topic"],
+                prometheus::exponential_buckets(5.0, 2.0, 5).unwrap()
+            )
+            .unwrap(),
         })
     }
 }

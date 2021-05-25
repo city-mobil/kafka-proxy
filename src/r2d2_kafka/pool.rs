@@ -1,7 +1,7 @@
-use rdkafka::ClientConfig;
-use rdkafka::producer::{FutureProducer, Producer};
-use rdkafka::error::{KafkaError, KafkaResult};
 use rdkafka::config::FromClientConfig;
+use rdkafka::error::{KafkaError, KafkaResult};
+use rdkafka::producer::{FutureProducer, Producer};
+use rdkafka::ClientConfig;
 use std::time::Duration;
 
 const DEFAULT_VALIDATION_DURATION: u64 = 100;
@@ -31,7 +31,10 @@ impl r2d2::ManageConnection for KafkaConnectorManager {
     }
 
     fn is_valid(&self, conn: &mut Self::Connection) -> Result<(), Self::Error> {
-        match conn.client().fetch_metadata(Some(""), self.validation_duration) {
+        match conn
+            .client()
+            .fetch_metadata(Some(""), self.validation_duration)
+        {
             Ok(_) => Ok(()),
             Err(e) => Err(e),
         }
