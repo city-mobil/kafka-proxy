@@ -201,15 +201,17 @@ pub mod config {
 }
 
 pub mod producer {
-    use rdkafka::client::DefaultClientContext;
-    use rdkafka::config::FromClientConfig;
+    use crate::r2d2_kafka::pool::KafkaConnectorManager;
+    use r2d2::Pool;
     use rdkafka::producer::future_producer::OwnedDeliveryResult;
-    use rdkafka::producer::{FutureProducer, FutureRecord};
+    use rdkafka::producer::FutureRecord;
     use std::sync::Arc;
     use std::time::{Duration, SystemTime};
 
+    const DEFAULT_PRODUCERS_POOL_SIZE: u32 = 4;
+
     pub struct Producer {
-        producer: FutureProducer<DefaultClientContext>,
+        pool: Arc<Pool<KafkaConnectorManager>>,
         sent_messages_counter: prometheus::IntCounterVec,
         queue_size_gauge: prometheus::IntGaugeVec,
         error_counter: prometheus::IntCounterVec,
@@ -238,7 +240,17 @@ pub mod producer {
             };
 
             let start = SystemTime::now();
-            let result = self.producer.send(record, timeout).await;
+            let conn = self.pool.clone()
+                .get()
+                .map_err(|err| {
+                    println!(
+                        "kafka: get producer connection from pool error in line:{} ! error: {:?}",
+                        line!(),
+                        err
+                    )
+                })
+                .unwrap();
+            let result = conn.send(record, timeout).await;
             self.message_send_duration
                 .with_label_values(&[&topic])
                 .observe(
@@ -260,43 +272,46 @@ pub mod producer {
     }
 
     pub fn new(cfg: super::config::Config) -> Arc<Producer> {
-        let cf = cfg.to_hash();
         let mut client_config = rdkafka::ClientConfig::new();
-        for (k, v) in cf.iter() {
+        for (k, v) in cfg.to_hash().iter() {
             client_config.set(k, v);
         }
 
-        let result = FutureProducer::from_config(&client_config);
-        match result {
-            Err(err) => panic!("Failed to create threaded producer: {}", err.to_string()),
-            Ok(producer) => Arc::new(Producer {
-                producer,
-                queue_size_gauge: prometheus::register_int_gauge_vec!(
-                    "kafka_internal_queue_size",
-                    "Kafka internal queue size",
-                    &["topic"]
-                )
+        let manager = KafkaConnectorManager::new(client_config);
+        let pool = Arc::new(
+            r2d2::Pool::builder()
+                .max_size(DEFAULT_PRODUCERS_POOL_SIZE)
+                .build(manager)
                 .unwrap(),
-                error_counter: prometheus::register_int_counter_vec!(
-                    "kafka_errors_count",
-                    "Kafka internal errors count",
-                    &["topic", "error_code"]
-                )
-                .unwrap(),
-                sent_messages_counter: prometheus::register_int_counter_vec!(
-                    "kafka_sent_messages",
-                    "Kafka sent messages count",
-                    &["topic"]
-                )
-                .unwrap(),
-                message_send_duration: prometheus::register_histogram_vec!(
-                    "kafka_message_send_duration",
-                    "Kafka message send duration",
-                    &["topic"],
-                    prometheus::exponential_buckets(5.0, 2.0, 5).unwrap()
-                )
-                .unwrap(),
-            }),
-        }
+        );
+
+        Arc::new(Producer {
+            pool,
+            queue_size_gauge: prometheus::register_int_gauge_vec!(
+                "kafka_internal_queue_size",
+                "Kafka internal queue size",
+                &["topic"]
+            )
+            .unwrap(),
+            error_counter: prometheus::register_int_counter_vec!(
+                "kafka_errors_count",
+                "Kafka internal errors count",
+                &["topic", "error_code"]
+            )
+            .unwrap(),
+            sent_messages_counter: prometheus::register_int_counter_vec!(
+                "kafka_sent_messages",
+                "Kafka sent messages count",
+                &["topic"]
+            )
+            .unwrap(),
+            message_send_duration: prometheus::register_histogram_vec!(
+                "kafka_message_send_duration",
+                "Kafka message send duration",
+                &["topic"],
+                prometheus::exponential_buckets(5.0, 2.0, 5).unwrap()
+            )
+            .unwrap(),
+        })
     }
 }

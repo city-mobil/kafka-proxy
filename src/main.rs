@@ -3,6 +3,7 @@ mod http;
 mod kafka;
 mod log;
 mod metrics;
+mod r2d2_kafka;
 
 use crate::log::kflog;
 use clap::ArgMatches;

@@ -54,7 +54,6 @@ mod handler {
     use crate::kafka::kafka::producer::Producer;
     use crate::log::kflog;
     use rdkafka::error::KafkaError;
-    use rdkafka::producer::future_producer::OwnedDeliveryResult;
     use std::convert::Infallible;
     use std::sync::Arc;
     use std::time::{Duration, SystemTime};
