@@ -8,7 +8,6 @@ use crate::log::kflog;
 use clap::ArgMatches;
 use kflog::Logger;
 use tokio::sync::oneshot;
-use tokio::sync::oneshot::Receiver;
 use warp::Filter;
 
 fn app_args<'a>() -> ArgMatches<'a> {
@@ -23,32 +22,6 @@ fn app_args<'a>() -> ArgMatches<'a> {
                 .takes_value(true),
         )
         .get_matches();
-}
-
-fn start_metrics_server(logger: Logger, shutdown_rx: Receiver<String>) -> Receiver<i8> {
-    let route = warp::path!("metrics")
-        .and(metrics::metrics::with_logger(logger.clone()))
-        .and_then(metrics::metrics::handler);
-
-    let (shutdown_completed_tx, shutdown_completed_rx) = oneshot::channel::<i8>();
-
-    let (_, server) = warp::serve(route).bind_with_graceful_shutdown(([0, 0, 0, 0], 8088), {
-        async move {
-            shutdown_rx.await.ok();
-            slog::info!(logger, "shutting down metrics server");
-            let send_result = shutdown_completed_tx.send(0);
-            if send_result.is_err() {
-                slog::error!(
-                    logger,
-                    "failed to send data to main_server shutdown channel: {}",
-                    send_result.err().unwrap()
-                );
-            }
-        }
-    });
-    let result = tokio::task::spawn(server);
-    tokio::task::spawn(async move { result.await });
-    return shutdown_completed_rx;
 }
 
 #[tokio::main]
@@ -68,7 +41,9 @@ async fn main() {
 
     let kafka_producer = kafka::kafka::producer::new(cfg.get_kafka_config());
 
-    let metrics_shutdown_rx = start_metrics_server(logger.clone(), shutdown_metrics_rx);
+    let metrics_server =
+        metrics::metrics::Server::new(metrics::metrics::ServerConfig { port: 8088 });
+    let metrics_shutdown_rx = metrics_server.start_server(logger.clone(), shutdown_metrics_rx);
 
     // TODO(shmel1k): improve graceful shutdown behavior.
     let main_server_shutdown_rx =
