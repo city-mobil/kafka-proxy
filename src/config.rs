@@ -18,7 +18,10 @@ impl Config {
         return Config {
             config_path: String::from(config_file),
             output_file: String::from(""),
-            http_config: HttpConfig { port: 0 },
+            http_config: HttpConfig {
+                port: DEFAULT_HTTP_PORT,
+                metrics_port: DEFAULT_METRICS_PORT,
+            },
             kafka_config: kafka::kafka::config::Config::new_empty(),
         };
     }
@@ -83,13 +86,27 @@ impl Config {
 #[derive(Clone)]
 pub struct HttpConfig {
     port: u16,
+    metrics_port: u16,
 }
+
+const DEFAULT_HTTP_PORT: u16 = 4242;
+const DEFAULT_METRICS_PORT: u16 = 8088;
 
 impl HttpConfig {
     pub fn new_from_yaml(yml: &Option<&Yaml>) -> HttpConfig {
         let hash = yml.unwrap().as_hash().unwrap();
         let port = hash.get(&Yaml::from_str("port")).unwrap().as_i64().unwrap();
-        return HttpConfig { port: port as u16 };
+
+        let metrics_port_raw = hash.get(&Yaml::from_str("metrics_port"));
+        let mut metrics_port = DEFAULT_METRICS_PORT;
+        if metrics_port_raw.is_some() {
+            metrics_port = metrics_port_raw.unwrap().as_i64().unwrap() as u16;
+        }
+
+        return HttpConfig {
+            port: port as u16,
+            metrics_port,
+        };
     }
 
     pub fn port(&self) -> u16 {

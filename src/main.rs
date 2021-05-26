@@ -6,9 +6,7 @@ mod metrics;
 
 use crate::log::kflog;
 use clap::ArgMatches;
-use kflog::Logger;
 use tokio::sync::oneshot;
-use warp::Filter;
 
 fn app_args<'a>() -> ArgMatches<'a> {
     return clap::App::new("kprf")
