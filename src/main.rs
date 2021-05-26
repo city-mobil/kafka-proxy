@@ -3,7 +3,6 @@ mod http;
 mod kafka;
 mod log;
 mod metrics;
-mod r2d2_kafka;
 
 use crate::log::kflog;
 use clap::ArgMatches;
@@ -70,6 +69,8 @@ async fn main() {
     let kafka_producer = kafka::kafka::producer::new(cfg.get_kafka_config());
 
     let metrics_shutdown_rx = start_metrics_server(logger.clone(), shutdown_metrics_rx);
+
+    println!("Running http server");
 
     // TODO(shmel1k): improve graceful shutdown behavior.
     let main_server_shutdown_rx =

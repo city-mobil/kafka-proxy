@@ -201,8 +201,8 @@ pub mod config {
 }
 
 pub mod producer {
-    use crate::r2d2_kafka::pool::KafkaConnectorManager;
     use r2d2::Pool;
+    use r2d2_kafka::KafkaConnectorManager;
     use rdkafka::producer::future_producer::OwnedDeliveryResult;
     use rdkafka::producer::FutureRecord;
     use std::sync::Arc;
@@ -240,7 +240,9 @@ pub mod producer {
             };
 
             let start = SystemTime::now();
-            let conn = self.pool.clone()
+            let conn = self
+                .pool
+                .clone()
                 .get()
                 .map_err(|err| {
                     println!(
