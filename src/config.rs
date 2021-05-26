@@ -112,4 +112,8 @@ impl HttpConfig {
     pub fn port(&self) -> u16 {
         self.port
     }
+
+    pub fn metrics_port(&self) -> u16 {
+        self.metrics_port
+    }
 }

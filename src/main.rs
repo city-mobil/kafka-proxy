@@ -39,8 +39,9 @@ async fn main() {
 
     let kafka_producer = kafka::kafka::producer::new(cfg.get_kafka_config());
 
-    let metrics_server =
-        metrics::metrics::Server::new(metrics::metrics::ServerConfig { port: 8088 });
+    let metrics_server = metrics::metrics::Server::new(metrics::metrics::ServerConfig {
+        port: cfg.get_http_config().metrics_port(),
+    });
     let metrics_shutdown_rx = metrics_server.start_server(logger.clone(), shutdown_metrics_rx);
 
     // TODO(shmel1k): improve graceful shutdown behavior.

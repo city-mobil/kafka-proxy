@@ -82,6 +82,7 @@ kafka:
 
 http:
   port: 4242
+  metrics_port: 8088
 
 output_file: "/dev/stdout"
 ```
