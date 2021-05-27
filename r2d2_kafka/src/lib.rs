@@ -14,7 +14,7 @@ pub struct KafkaConnectorManager {
 
 impl KafkaConnectorManager {
     pub fn new(config: ClientConfig) -> KafkaConnectorManager {
-        let validation_duration = Duration::from_micros(DEFAULT_VALIDATION_DURATION);
+        let validation_duration = Duration::from_millis(DEFAULT_VALIDATION_DURATION);
         KafkaConnectorManager {
             config,
             validation_duration,

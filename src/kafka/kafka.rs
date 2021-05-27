@@ -208,7 +208,9 @@ pub mod producer {
     use std::sync::Arc;
     use std::time::{Duration, SystemTime};
 
-    const DEFAULT_PRODUCERS_POOL_SIZE: u32 = 4;
+    const DEFAULT_PRODUCERS_POOL_SIZE: u32 = 15;
+    const DEFAULT_PRODUCERS_CONNECTION_TIMEOUT: Duration = Duration::from_millis(100);
+    const DEFAULT_PRODUCERS_CONNECTION_LIFETIME: Some = Some(Duration::from_secs(300));
 
     pub struct Producer {
         pool: Arc<Pool<KafkaConnectorManager>>,
@@ -252,6 +254,7 @@ pub mod producer {
                     )
                 })
                 .unwrap();
+
             let result = conn.send(record, timeout).await;
             self.message_send_duration
                 .with_label_values(&[&topic])
@@ -283,6 +286,8 @@ pub mod producer {
         let pool = Arc::new(
             r2d2::Pool::builder()
                 .max_size(DEFAULT_PRODUCERS_POOL_SIZE)
+                .connection_timeout(DEFAULT_PRODUCERS_CONNECTION_TIMEOUT)
+                .max_lifetime(DEFAULT_PRODUCERS_CONNECTION_LIFETIME)
                 .build(manager)
                 .unwrap(),
         );
