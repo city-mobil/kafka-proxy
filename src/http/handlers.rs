@@ -62,7 +62,7 @@ mod handler {
 
         // NOTE(a.petrukhin): sharding is based on uuid from request.
         // It leads to allocations.
-        let request_id_cloned = request_id.clone();
+        // let request_id_cloned = request_id.clone();
         let is_sync_request = req.wait_for_send;
 
         let push_result = handler.handle_push(req).await;

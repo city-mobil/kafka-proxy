@@ -42,7 +42,7 @@ pub struct ApiHandler {
 }
 
 struct ProduceHelper {
-    idx: u16,
+    idx: usize,
     result: OwnedDeliveryResult,
 }
 
@@ -78,14 +78,14 @@ impl Request {
                     )
                     .await;
                 ProduceHelper {
-                    idx: record.0 as u16,
+                    idx: record.0 as usize,
                     result,
                 }
             })
             .collect::<Vec<_>>();
 
         let mut has_errors = false;
-        let mut error_vec = vec![];
+        let mut error_vec = Vec::with_capacity(records.len());
         for future in futures {
             let f = future.await;
             if !f.result.is_err() {
@@ -98,10 +98,12 @@ impl Request {
 
             let (err, _) = f.result.unwrap_err();
             let err_str = err.to_string();
+            let topic = &records[f.idx].topic;
             slog::error!(
                 self.logger,
                 "got error when tried to send message";
                 "error" => &err_str,
+                "topic" => topic,
             );
             error_vec.push(PushResponseError {
                 error: true,
