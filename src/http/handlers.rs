@@ -94,7 +94,7 @@ mod handler {
                         &record.topic,
                         &record.data,
                         record.key.as_ref(),
-                        Duration::from_millis(100),
+                        Duration::from_millis(300),
                     )
                     .await
             })

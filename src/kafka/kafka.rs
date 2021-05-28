@@ -210,7 +210,7 @@ pub mod producer {
 
     const DEFAULT_PRODUCERS_POOL_SIZE: u32 = 15;
     const DEFAULT_PRODUCERS_CONNECTION_TIMEOUT: Duration = Duration::from_millis(100);
-    const DEFAULT_PRODUCERS_CONNECTION_LIFETIME: Some = Some(Duration::from_secs(300));
+    const DEFAULT_PRODUCERS_CONNECTION_LIFETIME: Option<Duration> = Some(Duration::from_secs(300));
 
     pub struct Producer {
         pool: Arc<Pool<KafkaConnectorManager>>,
