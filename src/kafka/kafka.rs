@@ -205,8 +205,50 @@ pub mod producer {
     use rdkafka::config::FromClientConfig;
     use rdkafka::producer::future_producer::OwnedDeliveryResult;
     use rdkafka::producer::{FutureProducer, FutureRecord};
+    use rdkafka::{ClientContext, Statistics};
     use std::sync::Arc;
     use std::time::{Duration, SystemTime};
+
+    struct KprfClientContext {
+        reply_queue_size: prometheus::IntCounterVec,
+        //        current_messages_in_queue: prometheus::IntCounterVec,
+        //        current_messages_in_queue_bytes: prometheus::IntCounterVec,
+        //        total_requests_sent: prometheus::IntCounterVec,
+        //        total_requests_sent_bytes: prometheus::IntCounterVec,
+        //        total_responses_received: prometheus::IntCounterVec,
+        //        total_bytes_received: prometheus::IntCounterVec,
+        //        total_messages_sent: prometheus::IntCounterVec,
+        //        total_messages_sent_bytes: prometheus::IntCounterVec,
+        //        metadata_cache_topics_count: prometheus::IntCounterVec,
+        //        broker_state: prometheus::IntGaugeVec,
+        //        broker_stateage: prometheus::IntCounterVec,
+        //        broker_outbuf_cnt: prometheus::IntCounterVec,
+        //        broker_outbuf_msg_cnt: prometheus::IntCounterVec,
+        //        broker_waitresp_cnt: prometheus::IntCounterVec,
+        //        broker_waitresp_msg_cnt: prometheus::IntCounterVec,
+        //        broker_requests_sent: prometheus::IntCounterVec,
+    }
+
+    impl ClientContext for KprfClientContext {
+        fn stats(&self, statistics: Statistics) {
+            self.reply_queue_size
+                .with_label_values(&[])
+                .inc_by(statistics.replyq as u64);
+        }
+    }
+
+    impl KprfClientContext {
+        fn new() -> KprfClientContext {
+            KprfClientContext {
+                reply_queue_size: prometheus::register_int_counter_vec!(
+                    "kafka_producer_reply_queue_size",
+                    "Kafka producer reply queue size",
+                    &[]
+                )
+                .unwrap(),
+            }
+        }
+    }
 
     pub struct Producer {
         producer: FutureProducer<DefaultClientContext>,
