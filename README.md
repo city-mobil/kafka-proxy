@@ -45,11 +45,18 @@ Following examples work if kafka-proxy is set up and running.
 # Try asynchronous producing
 curl 'http://127.0.0.1:4242/push' -H 'Content-Type: application/json' -d '{"records": [{"topic": "SOME_TOPIC", "data": "{"\a"\: "\b"\}"}],
 "wait_for_send": false}'
+
+# Possible success response:
+{"status": "ok", "errors": []}
+
+# Possible erroring response:
+{"status": "error", "errors": [{"status": "error", "error": "some_message"}, {"status": "ok", "error":""}]}
 ```
 
 JSON Fields:
-- `topic` - describes some kafka topic for producing.
-- `data` -  describes some string data. Can be JSON, XML or anything.
+- `records` - describes records for further producing.
+- `records[i].topic` - describes some kafka topic for producing.
+- `records[i].data` -  describes some string data. Can be JSON, XML or anything.
 - `wait_for_send` - describes if http-producer client has to wait for delivery result or not.
 If false, message is produced asynchronously. Otherwise, synchronously. Default value is `false`
 
