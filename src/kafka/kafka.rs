@@ -227,23 +227,118 @@ pub mod producer {
     use std::time::{Duration, SystemTime};
 
     struct KprfClientContext {
+        /// The number of operations (callbacks, events, etc.) waiting in queue.
+        ///
+        /// librdkafka 'replyq'
         reply_queue_size: prometheus::IntCounterVec,
-        //        current_messages_in_queue: prometheus::IntCounterVec,
-        //        current_messages_in_queue_bytes: prometheus::IntCounterVec,
-        //        total_requests_sent: prometheus::IntCounterVec,
-        //        total_requests_sent_bytes: prometheus::IntCounterVec,
-        //        total_responses_received: prometheus::IntCounterVec,
-        //        total_bytes_received: prometheus::IntCounterVec,
-        //        total_messages_sent: prometheus::IntCounterVec,
-        //        total_messages_sent_bytes: prometheus::IntCounterVec,
-        //        metadata_cache_topics_count: prometheus::IntCounterVec,
-        //        broker_state: prometheus::IntGaugeVec,
-        //        broker_stateage: prometheus::IntCounterVec,
-        //        broker_outbuf_cnt: prometheus::IntCounterVec,
-        //        broker_outbuf_msg_cnt: prometheus::IntCounterVec,
-        //        broker_waitresp_cnt: prometheus::IntCounterVec,
-        //        broker_waitresp_msg_cnt: prometheus::IntCounterVec,
-        //        broker_requests_sent: prometheus::IntCounterVec,
+        /// The current number of messages in producer queues.
+        ///
+        /// librdkafka 'msg_cnt'
+        current_messages_in_queue: prometheus::IntCounterVec,
+        /// The current total size of messages in producer queues.
+        ///
+        /// librdkafka 'msg_size'
+        current_messages_in_queue_bytes: prometheus::IntCounterVec,
+        /// The total number of requests sent to brokers.
+        ///
+        /// librdkafka 'tx'
+        total_requests_count: prometheus::IntCounterVec,
+        /// The total number of bytes transmitted to brokers.
+        ///
+        /// librdkafka 'tx_bytes'
+        total_requests_bytes_sent: prometheus::IntCounterVec, // librdkafka 'tx_bytes'
+        /// The total number of responses received from brokers.
+        ///
+        /// librdkafka 'rx'
+        total_responses_received: prometheus::IntCounterVec,
+        /// The total number of bytes received from brokers.
+        ///
+        /// librdkafka 'rx_bytes'
+        total_bytes_received: prometheus::IntCounterVec,
+        /// The total number of messages transmitted (produced) to brokers.
+        ///
+        /// librdkafka 'txmsgs'
+        total_messages_sent: prometheus::IntCounterVec,
+        /// The total number of bytes transmitted (produced) to brokers.
+        ///
+        /// librdkafka 'txmsg_bytes'
+        total_messages_sent_bytes: prometheus::IntCounterVec,
+        /// Number of topics in the metadata cache.
+        ///
+        /// librdkafka 'metadata_cache_cnt'
+        metadata_cache_topics_count: prometheus::IntGaugeVec,
+        /// The broker state (INIT, DOWN, CONNECT, AUTH, APIVERSION_QUERY,
+        /// AUTH_HANDSHAKE, UP, UPDATE).
+        ///
+        /// librdkafka 'brokers.state'
+        broker_state: prometheus::IntGaugeVec, //
+        /// The time since the last broker state change, in microseconds.
+        ///
+        /// librdkafka 'brokers.stateage'
+        broker_stateage: prometheus::IntCounterVec,
+        /// The number of requests awaiting transmission to the broker.
+        ///
+        /// librdkafka 'brokers.outbuf_cnt'
+        broker_outbuf_cnt: prometheus::IntCounterVec,
+        /// The number of messages awaiting transmission to the broker.
+        ///
+        /// librdkafka 'brokers.outbuf_msg_cnt'
+        broker_outbuf_msg_cnt: prometheus::IntCounterVec,
+        /// The number of requests in-flight to the broker that are awaiting a
+        /// response.
+        ///
+        /// librdkafka 'brokers.waitresp_cnt'
+        broker_waitresp_cnt: prometheus::IntCounterVec,
+        /// The number of messages in-flight to the broker that are awaiting a
+        /// response.
+        ///
+        /// librdkafka 'brokers.waitresp_msg_cnt'
+        broker_waitresp_msg_cnt: prometheus::IntCounterVec,
+        /// The total number of requests sent to the broker.
+        ///
+        /// librdkafka 'brokers.tx'
+        broker_requests_sent: prometheus::IntCounterVec,
+        /// The total number of bytes sent to the broker.
+        ///
+        /// librdkafka 'brokers.txbytes'
+        broker_requests_sent_bytes: prometheus::IntCounterVec,
+        /// The total number of transmission errors.
+        ///
+        /// librdkafka 'brokers.txerrs'
+        broker_transmission_errors: prometheus::IntCounterVec,
+        /// The total number of request retries.
+        ///
+        /// librdkafka 'brokers.txretries'
+        broker_request_retries: prometheus::IntCounterVec,
+        /// The total number of requests that timed out.
+        ///
+        /// librdkafka 'brokers.req_timeouts'
+        broker_request_timeouts: prometheus::IntCounterVec,
+        /// The total number of responses received from the broker.
+        ///
+        /// librdkafka 'brokers.rx'
+        broker_responses_count: prometheus::IntCounterVec,
+        /// The total number of bytes received from the broker.
+        ///
+        /// librdkafka 'brokers.rxbytes'
+        broker_bytes_received: prometheus::IntCounterVec,
+        /// The total number of received errors.
+        ///
+        /// librdkafka 'brokers.rxerrs'
+        broker_errors_count: prometheus::IntCounterVec,
+        /// The age of the client's metadata for this topic, in milliseconds.
+        ///
+        /// librdkafka 'topic.metadata_age'
+        topic_metadata_age: prometheus::IntGaugeVec,
+        /// Rolling window statistics for batch sizes, in bytes.
+        ///
+        /// librdkafka 'topic.batchsize'
+        topic_batchsize_avg: prometheus::IntCounterVec,
+        /// Rolling window statistics for batch message counts.
+        ///
+        /// librdkafka 'topic.batchcnt'
+        topic_batchcnt_avg: prometheus::IntCounterVec,
+        // TODO(shmel1k): think about wakeups, connects, rtt stats collection.
     }
 
     impl ClientContext for KprfClientContext {
@@ -251,6 +346,18 @@ pub mod producer {
             self.reply_queue_size
                 .with_label_values(&[])
                 .inc_by(statistics.replyq as u64);
+            self.current_messages_in_queue
+                .with_label_values(&[])
+                .inc_by(statistics.msg_cnt as u64);
+            self.current_messages_in_queue_bytes
+                .with_label_values(&[])
+                .inc_by(statistics.msg_size as u64);
+            self.total_requests_sent
+                .with_label_values(&[])
+                .inc_by(statistics.tx as u64);
+            self.total_requests_sent_bytes
+                .with_label_values(&[])
+                .inc_by(statistics.tx_bytes as u64);
         }
     }
 
@@ -263,6 +370,67 @@ pub mod producer {
                     &[]
                 )
                 .unwrap(),
+                current_messages_in_queue: prometheus::register_int_counter_vec!(
+                    "kafka_producer_current_messages_in_queue",
+                    "Kafka producer messages currently in queue",
+                    &[]
+                )
+                .unwrap(),
+                current_messages_in_queue_bytes: prometheus::register_int_counter_vec!(
+                    "kafka_producer_current_messages_in_queue_bytes",
+                    "Kafka producer messages currently in queue as bytes",
+                    &[]
+                )
+                .unwrap(),
+                total_requests_sent: prometheus::register_int_counter_vec!(
+                    "kafka_producer_current_messages_in_queue_bytes",
+                    "Kafka producer messages currently in queue as bytes",
+                    &[]
+                )
+                .unwrap(),
+                total_requests_sent_bytes: prometheus::register_int_counter_vec!(
+                    "kafka_producer_current_messages_in_queue_bytes",
+                    "Kafka producer messages currently in queue as bytes",
+                    &[]
+                )
+                .unwrap(),
+                total_responses_received: prometheus::register_int_counter_vec!(
+                    "kafka_producer_current_messages_in_queue_bytes",
+                    "Kafka producer messages currently in queue as bytes",
+                    &[]
+                )
+                .unwrap(),
+                total_bytes_received: prometheus::register_int_counter_vec!(
+                    "kafka_producer_current_messages_in_queue_bytes",
+                    "Kafka producer messages currently in queue as bytes",
+                    &[]
+                )
+                .unwrap(),
+                total_messages_sent: prometheus::register_int_counter_vec!(
+                    "kafka_producer_current_messages_in_queue_bytes",
+                    "Kafka producer messages currently in queue as bytes",
+                    &[]
+                )
+                .unwrap(),
+                total_messages_sent_bytes: prometheus::register_int_counter_vec!(
+                    "kafka_producer_current_messages_in_queue_bytes",
+                    "Kafka producer messages currently in queue as bytes",
+                    &[]
+                )
+                .unwrap(),
+                metadata_cache_topics_count: prometheus::register_int_counter_vec!(
+                    "kafka_producer_current_messages_in_queue_bytes",
+                    "Kafka producer messages currently in queue as bytes",
+                    &[]
+                )
+                .unwrap(),
+                //broker_state: ,
+                //broker_stateage: ,
+                //broker_outbuf_cnt: ,
+                //broker_outbuf_msg_cnt: ,
+                //broker_waitresp_cnt: ,
+                //broker_waitresp_msg_cnt: ,
+                //broker_requests_sent:
             }
         }
     }
