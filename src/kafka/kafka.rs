@@ -226,14 +226,14 @@ pub mod producer {
     use std::sync::Arc;
     use std::time::{Duration, SystemTime};
 
-    const BROKER_STATE_INIT: u64 = 0;
-    const BROKER_STATE_DOWN: u64 = 1;
-    const BROKER_STATE_CONNECT: u64 = 2;
-    const BROKER_STATE_AUTH: u64 = 3;
-    const BROKER_STATE_APIVERSION_QUERY: u64 = 4;
-    const BROKER_STATE_AUTH_HANDSHAKE: u64 = 5;
-    const BROKER_STATE_UP: u64 = 6;
-    const BROKER_STATE_UPDATE: u64 = 7;
+    const BROKER_STATE_INIT: i64 = 0;
+    const BROKER_STATE_DOWN: i64 = 1;
+    const BROKER_STATE_CONNECT: i64 = 2;
+    const BROKER_STATE_AUTH: i64 = 3;
+    const BROKER_STATE_APIVERSION_QUERY: i64 = 4;
+    const BROKER_STATE_AUTH_HANDSHAKE: i64 = 5;
+    const BROKER_STATE_UP: i64 = 6;
+    const BROKER_STATE_UPDATE: i64 = 7;
 
     struct KprfClientContext {
         /// The number of operations (callbacks, events, etc.) waiting in queue.
@@ -359,10 +359,43 @@ pub mod producer {
                 .inc_by(statistics.msg_size as u64);
             self.total_requests_count.inc_by(statistics.tx as u64);
             self.total_bytes_sent.inc_by(statistics.tx_bytes as u64);
+            self.total_responses_received.inc_by(statistics.rx as u64);
+            self.total_bytes_received.inc_by(statistics.rx_bytes as u64);
+            self.total_messages_sent.inc_by(statistics.txmsgs as u64);
+            self.total_messages_sent_bytes
+                .inc_by(statistics.txmsg_bytes as u64);
+            self.metadata_cache_topics_count
+                .set(statistics.metadata_cache_cnt);
+
+            for (k, v) in statistics.brokers.iter() {
+                let labels = [k.as_str()];
+                let state = KprfClientContext::parse_state(&v.state);
+                self.broker_state.with_label_values(&labels).set(state);
+                self.broker_stateage
+                    .with_label_values(&labels)
+                    .set(v.stateage);
+                self.broker_outbuf_count
+                    .with_label_values(&labels)
+                    .inc_by(v.outbuf_cnt as u64);
+            }
         }
     }
 
     impl KprfClientContext {
+        fn parse_state(state: &String) -> i64 {
+            return match state.as_str() {
+                "INIT" => BROKER_STATE_INIT,
+                "DOWN" => BROKER_STATE_DOWN,
+                "CONNECT" => BROKER_STATE_CONNECT,
+                "AUTH" => BROKER_STATE_AUTH,
+                "APIVERSION_QUERY" => BROKER_STATE_APIVERSION_QUERY,
+                "AUTH_HANDSHAKE" => BROKER_STATE_AUTH_HANDSHAKE,
+                "UP" => BROKER_STATE_UP,
+                "UPDATE" => BROKER_STATE_UPDATE,
+                _ => BROKER_STATE_DOWN,
+            };
+        }
+
         fn new() -> KprfClientContext {
             KprfClientContext {
                 reply_queue_size: prometheus::register_int_counter!(
