@@ -12,6 +12,7 @@ pub mod config {
     const DEFAULT_REQUEST_REQUIRED_ACKS: i32 = -1;
     const DEFAULT_REQUEST_TIMEOUT_MS: u32 = 30000;
     const DEFAULT_QUEUE_BUFFERING_MAX_KBYTES: u32 = 1048576;
+    const DEFAULT_STATISTICS_INTERVAL_MS: u32 = 0;
 
     #[derive(Debug, Clone)]
     pub struct Config {
@@ -26,6 +27,7 @@ pub mod config {
         pub message_timeout_ms: u32,
         pub request_required_acks: i32,
         pub request_timeout_ms: u32,
+        pub statistics_interval_ms: u32,
     }
 
     impl Config {
@@ -67,6 +69,10 @@ pub mod config {
                 String::from("queue.buffering.max.kbytes"),
                 self.queue_buffering_max_kbytes.to_string(),
             );
+            mp.insert(
+                String::from("statistics.interval.ms"),
+                self.statistics_interval_ms.to_string(),
+            );
             return mp;
         }
 
@@ -83,6 +89,7 @@ pub mod config {
                 message_timeout_ms: 0,
                 request_required_acks: 0,
                 request_timeout_ms: 0,
+                statistics_interval_ms: 0,
             };
         }
 
@@ -183,6 +190,16 @@ pub mod config {
                     request_required_acks_raw.unwrap().clone().as_i64().unwrap() as u32;
             }
 
+            let statistics_interval_ms_raw = hash.get(&Yaml::from_str("statistics_interval_ms"));
+            let mut statistics_interval_ms = DEFAULT_STATISTICS_INTERVAL_MS;
+            if statistics_interval_ms_raw.is_some() {
+                statistics_interval_ms = statistics_interval_ms_raw
+                    .unwrap()
+                    .clone()
+                    .as_i64()
+                    .unwrap() as u32;
+            }
+
             return Config {
                 brokers,
                 user,
@@ -195,14 +212,14 @@ pub mod config {
                 message_timeout_ms,
                 request_required_acks,
                 request_timeout_ms,
+                statistics_interval_ms,
             };
         }
     }
 }
 
 pub mod producer {
-    use rdkafka::client::DefaultClientContext;
-    use rdkafka::config::FromClientConfig;
+    use rdkafka::config::FromClientConfigAndContext;
     use rdkafka::producer::future_producer::OwnedDeliveryResult;
     use rdkafka::producer::{FutureProducer, FutureRecord};
     use rdkafka::{ClientContext, Statistics};
@@ -251,7 +268,7 @@ pub mod producer {
     }
 
     pub struct Producer {
-        producer: FutureProducer<DefaultClientContext>,
+        producer: FutureProducer<KprfClientContext>,
         sent_messages_counter: prometheus::IntCounterVec,
         queue_size_gauge: prometheus::IntGaugeVec,
         error_counter: prometheus::IntCounterVec,
@@ -308,7 +325,9 @@ pub mod producer {
             client_config.set(k, v);
         }
 
-        let result = FutureProducer::from_config(&client_config);
+        let client_context = KprfClientContext::new();
+
+        let result = FutureProducer::from_config_and_context(&client_config, client_context);
         match result {
             Err(err) => panic!("Failed to create threaded producer: {}", err.to_string()),
             Ok(producer) => Arc::new(Producer {
