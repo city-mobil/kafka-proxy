@@ -25,4 +25,4 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           push: true
-          tags: shmel1k/kafka-proxy:${{ steps.get_tag.outputs.tag }}
+          tags: citymobil/kafka-proxy:${{ steps.get_tag.outputs.tag }}
