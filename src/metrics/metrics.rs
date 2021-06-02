@@ -64,6 +64,11 @@ impl Server {
 
         let (shutdown_completed_tx, shutdown_completed_rx) = oneshot::channel::<i8>();
 
+        slog::info!(
+            logger,
+            "starting metrics server";
+            "port" => self.config.port
+        );
         let (_, server) =
             warp::serve(route).bind_with_graceful_shutdown(([0, 0, 0, 0], self.config.port), {
                 async move {

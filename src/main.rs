@@ -45,6 +45,11 @@ async fn main() {
     let metrics_shutdown_rx = metrics_server.start_server(logger.clone(), shutdown_metrics_rx);
 
     // TODO(shmel1k): improve graceful shutdown behavior.
+    slog::info!(
+        logger,
+        "starting main http server";
+        "port" => cfg.get_http_config().metrics_port(),
+    );
     let main_server_shutdown_rx =
         server.start_server(logger.clone(), kafka_producer.clone(), shutdown_rx);
     tokio::select! {

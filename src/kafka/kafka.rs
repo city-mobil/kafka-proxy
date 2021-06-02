@@ -342,11 +342,11 @@ pub mod producer {
         /// Rolling window statistics for batch sizes, in bytes.
         ///
         /// librdkafka 'topic.batchsize'
-        topic_batchsize_avg: prometheus::IntCounterVec,
+        topic_batchsize_avg: prometheus::IntGaugeVec,
         /// Rolling window statistics for batch message counts.
         ///
         /// librdkafka 'topic.batchcount'
-        topic_batchcount_avg: prometheus::IntCounterVec,
+        topic_batchcount_avg: prometheus::IntGaugeVec,
         // TODO(shmel1k): think about wakeups, connects, rtt stats collection.
     }
 
@@ -377,6 +377,51 @@ pub mod producer {
                 self.broker_outbuf_count
                     .with_label_values(&labels)
                     .inc_by(v.outbuf_cnt as u64);
+                self.broker_outbuf_msg_count
+                    .with_label_values(&labels)
+                    .inc_by(v.outbuf_msg_cnt as u64);
+                self.broker_waitresp_count
+                    .with_label_values(&labels)
+                    .inc_by(v.waitresp_cnt as u64);
+                self.broker_waitresp_msg_count
+                    .with_label_values(&labels)
+                    .inc_by(v.waitresp_msg_cnt as u64);
+                self.broker_requests_sent
+                    .with_label_values(&labels)
+                    .inc_by(v.tx as u64);
+                self.broker_requests_sent_bytes
+                    .with_label_values(&labels)
+                    .inc_by(v.txbytes as u64);
+                self.broker_transmission_errors
+                    .with_label_values(&labels)
+                    .inc_by(v.txerrs as u64);
+                self.broker_request_retries
+                    .with_label_values(&labels)
+                    .inc_by(v.txretries as u64);
+                self.broker_request_timeouts
+                    .with_label_values(&labels)
+                    .inc_by(v.req_timeouts as u64);
+                self.broker_responses_count
+                    .with_label_values(&labels)
+                    .inc_by(v.rx as u64);
+                self.broker_bytes_received
+                    .with_label_values(&labels)
+                    .inc_by(v.rxbytes as u64);
+                self.broker_errors_count
+                    .with_label_values(&labels)
+                    .inc_by(v.rxerrs as u64);
+            }
+            for (k, v) in statistics.topics.iter() {
+                let labels = [k.as_str()];
+                self.topic_metadata_age
+                    .with_label_values(&labels)
+                    .set(v.metadata_age);
+                self.topic_batchsize_avg
+                    .with_label_values(&labels)
+                    .set(v.batchsize.avg);
+                self.topic_batchcount_avg
+                    .with_label_values(&labels)
+                    .set(v.batchcnt.avg);
             }
         }
     }
@@ -439,7 +484,7 @@ pub mod producer {
                 )
                 .unwrap(),
                 total_messages_sent_bytes: prometheus::register_int_counter!(
-                    "kafka_producer_total_bytes_sent",
+                    "kafka_producer_total_messages_bytes_sent",
                     "Kafka producer total number of bytes transmitted (produced) to brokers"
                 )
                 .unwrap(),
@@ -503,7 +548,7 @@ pub mod producer {
                 )
                 .unwrap(),
                 broker_request_retries: prometheus::register_int_counter_vec!(
-                    "kafka_producer_broker_outbuf_count",
+                    "kafka_producer_broker_request_retries",
                     "Kafka producer total number of request retries",
                     &["broker"]
                 )
@@ -538,13 +583,13 @@ pub mod producer {
                     &["topic"]
                 )
                 .unwrap(),
-                topic_batchsize_avg: prometheus::register_int_counter_vec!(
+                topic_batchsize_avg: prometheus::register_int_gauge_vec!(
                     "kafka_producer_topic_batchsize_avg",
                     "Kafka producer rolling window statistics for batch sizes, in bytes",
                     &["topic"]
                 )
                 .unwrap(),
-                topic_batchcount_avg: prometheus::register_int_counter_vec!(
+                topic_batchcount_avg: prometheus::register_int_gauge_vec!(
                     "kafka_producer_topic_batchcount_avg",
                     "Kafka producer rolling window statistics for batch message counts",
                     &["topic"]
