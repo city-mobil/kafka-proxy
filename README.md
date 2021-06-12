@@ -43,7 +43,7 @@ Following examples work if kafka-proxy is set up and running.
 
 ```
 # Try asynchronous producing
-curl 'http://127.0.0.1:4242/push' -H 'Content-Type: application/json' -d '{"records": [{"topic": "SOME_TOPIC", "data": "{"\a"\: "\b"\}"}],
+curl 'http://127.0.0.1:4242/push' -H 'Content-Type: application/json' -d '{"records": [{"partition": 42, topic": "SOME_TOPIC", "data": "{"\a"\: "\b"\}"}],
 "wait_for_send": false}'
 
 # Possible success response:
@@ -55,9 +55,10 @@ curl 'http://127.0.0.1:4242/push' -H 'Content-Type: application/json' -d '{"reco
 
 JSON Fields:
 - `records` - describes records for further producing.
-- `records[i].topic` - describes some kafka topic for producing.
-- `records[i].data` -  describes some string data. Can be JSON, XML or anything.
-- `wait_for_send` - describes if http-producer client has to wait for delivery result or not.
+- `records[i].topic` - `required, string`. Describes some kafka topic for producing.
+- `records[i].data` -  `required, string`. Describes some string data. Can be JSON, XML or anything.
+- `records[i].partition` - `optional, integer`. Describes Kafka partition for current message. 
+- `wait_for_send` - `optional, boolean`. Describes if http-producer client has to wait for delivery result or not.
 If false, message is produced asynchronously. Otherwise, synchronously. Default value is `false`
 
 ## Configuration
@@ -76,6 +77,7 @@ At this moment, this options from [librdkafka](https://github.com/edenhill/librd
 - `kafka.request_timeout_ms` - alias for `request.timeout.ms` from librdkafka. Default value is `30000`.
 - `kafka.request_required_acks` - alias for `request.required.acks` from librdkafka. Default value is `-1`.
 - `http.port` - port for HTTP server for producing messages. Default value is `4242`
+- `http.metrics_port` - port for HTTP /metrics server. Default value is `8088`
 - `output_file` - output file for logging. Default value is `/dev/stdout`
 
 ### Example configuration
