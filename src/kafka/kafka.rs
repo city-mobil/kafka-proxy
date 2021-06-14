@@ -613,6 +613,7 @@ pub mod producer {
             topic: &String,
             data: &String,
             key: Option<&String>,
+            partition: Option<i32>,
             timeout: Duration,
         ) -> OwnedDeliveryResult {
             self.queue_size_gauge.with_label_values(&[&topic]).inc();
@@ -621,7 +622,7 @@ pub mod producer {
                 .inc();
             let record = FutureRecord {
                 topic,
-                partition: None,
+                partition,
                 payload: Some(data),
                 key,
                 timestamp: None,

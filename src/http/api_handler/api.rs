@@ -15,6 +15,7 @@ pub(crate) mod requests {
         pub data: String,
         pub topic: String,
         pub key: Option<String>,
+        pub partition: Option<i32>,
     }
 
     #[derive(Debug, Deserialize)]
@@ -74,6 +75,7 @@ impl Request {
                         &record.1.topic,
                         &record.1.data,
                         record.1.key.as_ref(),
+                        record.1.partition,
                         Duration::from_millis(100),
                     )
                     .await;
