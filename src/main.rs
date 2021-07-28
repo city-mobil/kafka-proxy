@@ -44,6 +44,11 @@ async fn main() {
     });
     let metrics_shutdown_rx = metrics_server.start_server(logger.clone(), shutdown_metrics_rx);
 
+    let lim = ratelimit::Limiter::new(vec![ratelimit::Rule {
+        topic_name: String::from("a"),
+        max_requests_per_second: 10,
+    }]);
+
     // TODO(shmel1k): improve graceful shutdown behavior.
     slog::info!(
         logger,

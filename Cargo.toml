@@ -21,6 +21,7 @@ slog-term = "2.8.0"
 prometheus = "0.12.0"
 lazy_static = "1.4.0"
 uuid = { version = "0.8", features = ["serde", "v4"] }
+ratelimit = { path = "src/ratelimit" }
 
 [features]
 default = ["std"]
