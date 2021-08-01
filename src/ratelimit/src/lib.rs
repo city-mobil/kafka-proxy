@@ -37,7 +37,7 @@ pub struct Limiter {
 const BUCKET_COUNT: i32 = 60;
 
 impl Limiter {
-    pub fn check(&self, topic_name: &String) -> Result<bool, str> {
+    pub fn check(&self, topic_name: &String) -> Result<bool, String> {
         if topic_name == "" {
             // NOTE(shmel1k): if topic_name is empty, ratelimit is not checked.
             return Ok(true);
@@ -50,15 +50,16 @@ impl Limiter {
         };
 
         if max_attempts == 0 {
-            return true;
+            Ok(true)
         }
 
         let lock = self.container.lock();
-        match lock {
-            Err(e) =>
-        }
+        let storage = match lock {
+            Err(e) => return Err(e.to_string()),
+            Ok(l) => l,
+        };
 
-        false
+        Ok(false)
     }
 
     fn calculate_bucket(ts: i32) -> i32 {
