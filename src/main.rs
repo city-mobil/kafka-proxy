@@ -46,7 +46,7 @@ async fn main() {
 
     let lim = ratelimit::Limiter::new(vec![ratelimit::Rule {
         topic_name: String::from("a"),
-        max_requests_per_second: 10,
+        max_requests_per_minute: 10,
     }]);
 
     // TODO(shmel1k): improve graceful shutdown behavior.
