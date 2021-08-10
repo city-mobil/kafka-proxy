@@ -991,6 +991,9 @@ dependencies = [
 [[package]]
 name = "ratelimit"
 version = "0.1.0"
+dependencies = [
+ "tokio",
+]
 
 [[package]]
 name = "rdkafka"
