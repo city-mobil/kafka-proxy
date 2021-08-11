@@ -2,3 +2,6 @@
 .idea/
 *.swp
 config.yaml
+*.o
+**/*.o
+**/target/*
