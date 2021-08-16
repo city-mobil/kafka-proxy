@@ -1,10 +1,13 @@
 use std::cell::Cell;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+const MAX_REQUESTS_UNLIMITED: i64 = -1;
+const MAX_REQUESTS_DECLINED: i64 = 0;
+
 #[derive(Debug, Clone)]
 pub struct Rule {
     pub topic_name: String,
-    pub max_requests_per_minute: u32,
+    pub max_requests_per_minute: i64,
 }
 
 #[derive(Debug)]
@@ -51,7 +54,7 @@ impl Limiter {
         }
     }
 
-    fn check_locked(buckets: &mut std::vec::Vec<Bucket>, ts: u64, max_allowed: u32) -> bool {
+    fn check_locked(buckets: &mut std::vec::Vec<Bucket>, ts: u64, max_allowed: i64) -> bool {
         let bucket_slot = Limiter::calculate_bucket(ts) as usize;
         if let Some(b) = buckets.get_mut(bucket_slot) {
             Limiter::update_bucket(b, ts);
@@ -78,8 +81,12 @@ impl Limiter {
             None => return Ok(true),
         };
 
-        if max_attempts_count == 0 {
+        if max_attempts_count == MAX_REQUESTS_UNLIMITED {
             return Ok(true);
+        }
+
+        if max_attempts_count == MAX_REQUESTS_DECLINED {
+            return Ok(false);
         }
 
         let lock = self.container.lock();
@@ -165,9 +172,18 @@ mod tests {
     }
 
     #[test]
-    async fn test_check_ratelimit_zero_max_attempts() {
+    async fn test_check_ratelimit_declined() {
         let limiter = Limiter::new(vec![Rule {
             max_requests_per_minute: 0,
+            topic_name: String::from("a"),
+        }]);
+        assert_eq!(limiter.check(&String::from("a")).unwrap(), false);
+    }
+
+    #[test]
+    async fn test_check_ratelimit_unlimited() {
+        let limiter = Limiter::new(vec![Rule {
+            max_requests_per_minute: -1,
             topic_name: String::from("a"),
         }]);
         assert_eq!(limiter.check(&String::from("a")).unwrap(), true);
