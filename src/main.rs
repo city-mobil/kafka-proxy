@@ -25,8 +25,7 @@ fn app_args<'a>() -> ArgMatches<'a> {
 #[tokio::main]
 async fn main() {
     let args = app_args();
-    let mut cfg = config::Config::new(args);
-    cfg.prepare();
+    let cfg = config::KafkaProxyConfig::new(args);
 
     let http_config = cfg.get_http_config();
     let logger = kflog::new_logger(&cfg.get_output_file());

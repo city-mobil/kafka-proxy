@@ -1,119 +1,116 @@
 use crate::kafka;
-use std::error::Error;
-use std::fs::File;
-use std::io::Read;
-use yaml_rust::{Yaml, YamlLoader};
+use config::{Config, ConfigError};
+use serde::Deserialize;
 
-pub struct Config {
-    config_path: String,
+#[derive(Deserialize)]
+pub struct KafkaProxyConfig {
+    #[serde(default)]
     output_file: String,
-    http_config: HttpConfig,
-    kafka_config: kafka::kafka::config::Config,
+
+    #[serde(default)]
+    http: HttpConfig,
+
+    #[serde(default)]
+    kafka: kafka::kafka::config::KafkaConfig,
 }
 
-impl Config {
-    pub fn new(arg_matches: clap::ArgMatches) -> Config {
+impl KafkaProxyConfig {
+    pub fn new(arg_matches: clap::ArgMatches) -> KafkaProxyConfig {
         let config_file = arg_matches.value_of("config").unwrap();
         // NOTE(a.petrukhin): default initialization.
-        return Config {
-            config_path: String::from(config_file),
-            output_file: String::from(""),
-            http_config: HttpConfig {
-                port: DEFAULT_HTTP_PORT,
-                metrics_port: DEFAULT_METRICS_PORT,
-            },
-            kafka_config: kafka::kafka::config::Config::new_empty(),
-        };
+        let config = KafkaProxyConfig::initialize_config(&String::from(config_file));
+        if config.is_err() {
+            panic!(
+                "failed to initialize config: {}",
+                config.err().unwrap().to_string()
+            );
+        }
+        return config.unwrap();
     }
 
-    pub fn prepare(&mut self) {
-        if self.config_path == "" {
-            panic!("No configuration file found");
+    fn initialize_config(config_path: &String) -> Result<Self, ConfigError> {
+        let mut cfg = Config::default();
+
+        let merge_result = cfg.merge(config::File::with_name(config_path));
+        if merge_result.is_err() {
+            return Err(merge_result.err().unwrap());
         }
 
-        println!("Using file {}", self.config_path);
-
-        let path = std::path::Path::new(&self.config_path);
-        let mut file = match File::open(&path) {
-            Err(why) => panic!(
-                "Could not open {}: {}",
-                path.display(),
-                why.source().unwrap(),
-            ),
-            Ok(file) => file,
-        };
-
-        let mut s = String::new();
-        match file.read_to_string(&mut s) {
-            Err(why) => panic!("Could not read file to string: {}", why.source().unwrap()),
-            Ok(_) => {}
-        }
-
-        // NOTE(a.petrukhin): some copypaste from the internet :)
-        let docs = YamlLoader::load_from_str(&s).unwrap();
-        let doc = &docs[0].as_hash().unwrap();
-
-        let output_file_op = doc.get(&Yaml::from_str("output_file"));
-        let mut output_file = "";
-        match output_file_op {
-            Some(str) => output_file = str.as_str().unwrap(),
-            None => (),
-        }
-        self.output_file = String::from(output_file);
-
-        let kafka = doc.get(&Yaml::from_str("kafka"));
-        let http = doc.get(&Yaml::from_str("http"));
-
-        let http_config = HttpConfig::new_from_yaml(&http);
-        self.http_config = http_config;
-
-        self.kafka_config = kafka::kafka::config::Config::new_from_yaml(&kafka);
+        cfg.try_into()
     }
 
     pub fn get_http_config(&self) -> HttpConfig {
-        self.http_config.clone()
+        self.http.clone()
     }
 
     pub fn get_output_file(&self) -> String {
         self.output_file.clone()
     }
 
-    pub fn get_kafka_config(&self) -> kafka::kafka::config::Config {
-        self.kafka_config.clone()
+    pub fn get_kafka_config(&self) -> kafka::kafka::config::KafkaConfig {
+        self.kafka.clone()
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Deserialize)]
 pub struct HttpConfig {
-    port: u16,
-    metrics_port: u16,
+    #[serde(default = "HttpConfig::default_http_port")]
+    port: Option<u16>,
+
+    #[serde(default = "HttpConfig::default_metrics_port")]
+    metrics_port: Option<u16>,
 }
 
-const DEFAULT_HTTP_PORT: u16 = 4242;
-const DEFAULT_METRICS_PORT: u16 = 8088;
+impl Default for HttpConfig {
+    fn default() -> Self {
+        HttpConfig {
+            metrics_port: Some(HttpConfig::DEFAULT_METRICS_PORT),
+            port: Some(HttpConfig::DEFAULT_HTTP_PORT),
+        }
+    }
+}
 
 impl HttpConfig {
-    pub fn new_from_yaml(yml: &Option<&Yaml>) -> HttpConfig {
-        let hash = yml.unwrap().as_hash().unwrap();
-        let port = hash.get(&Yaml::from_str("port")).unwrap().as_i64().unwrap();
+    const DEFAULT_HTTP_PORT: u16 = 4242;
 
-        let metrics_port_raw = hash.get(&Yaml::from_str("metrics_port"));
-        let mut metrics_port = DEFAULT_METRICS_PORT;
-        if metrics_port_raw.is_some() {
-            metrics_port = metrics_port_raw.unwrap().as_i64().unwrap() as u16;
-        }
-
-        return HttpConfig {
-            port: port as u16,
-            metrics_port,
-        };
-    }
+    const DEFAULT_METRICS_PORT: u16 = 8088;
 
     pub fn port(&self) -> u16 {
-        self.port
+        self.port.unwrap()
     }
 
     pub fn metrics_port(&self) -> u16 {
-        self.metrics_port
+        self.metrics_port.unwrap()
+    }
+
+    fn default_http_port() -> Option<u16> {
+        Some(HttpConfig::DEFAULT_HTTP_PORT)
+    }
+
+    fn default_metrics_port() -> Option<u16> {
+        Some(HttpConfig::DEFAULT_METRICS_PORT)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::config::KafkaProxyConfig;
+
+    #[test]
+    fn test_kafkaproxy_config_new() {
+        //
+        let config_path = String::from("testdata/config.yaml");
+        let config = KafkaProxyConfig::initialize_config(&config_path);
+        assert_eq!(
+            config.is_err(),
+            false,
+            "failed to initialize kafka-proxy config: got error: {}",
+            config.err().unwrap().to_string()
+        );
+        let config_unwrapped = config.unwrap();
+        assert_eq!(config_unwrapped.http.port.unwrap(), 4242);
+        assert_eq!(config_unwrapped.http.metrics_port.unwrap(), 8089);
+        assert_eq!(config_unwrapped.kafka.request_required_acks.unwrap(), 1);
+        assert_eq!(config_unwrapped.kafka.queue_buffering_max_ms.unwrap(), 20);
     }
 }

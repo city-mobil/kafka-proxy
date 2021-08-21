@@ -1,219 +1,156 @@
 pub mod config {
+    use serde::Deserialize;
     use std::collections::HashMap;
-    use yaml_rust::Yaml;
 
-    const DEFAULT_USER: &str = "";
-    const DEFAULT_PASSWORD: &str = "";
     const DEFAULT_MESSAGE_MAX_BYTES: u32 = 1024 * 1024; // 1 MiB
     const DEFAULT_QUEUE_BUFFERING_MAX_MESSAGES: u32 = 100000;
     const DEFAULT_QUEUE_BUFFERING_MAX_MS: u32 = 10; // librdkafka default value is '5'
     const DEFAULT_RETRIES: u32 = 3; // librdkafka default is 2^32 - 1
     const DEFAULT_MESSAGE_TIMEOUT_MS: u32 = 2000; // librdkafka default is 300000
-    const DEFAULT_REQUEST_REQUIRED_ACKS: i32 = -1;
+    const DEFAULT_REQUEST_REQUIRED_ACKS: i32 = 1;
     const DEFAULT_REQUEST_TIMEOUT_MS: u32 = 30000;
     const DEFAULT_QUEUE_BUFFERING_MAX_KBYTES: u32 = 1048576;
     const DEFAULT_STATISTICS_INTERVAL_MS: u32 = 0;
 
-    #[derive(Debug, Clone)]
-    pub struct Config {
+    #[derive(Debug, Clone, Deserialize)]
+    pub struct KafkaConfig {
         pub brokers: Vec<String>,
-        pub user: String,
-        pub password: String,
-        pub message_max_bytes: u32,
-        pub queue_buffering_max_messages: u32,
-        pub queue_buffering_max_ms: u32,
-        pub queue_buffering_max_kbytes: u32,
-        pub retries: u32,
-        pub message_timeout_ms: u32,
-        pub request_required_acks: i32,
-        pub request_timeout_ms: u32,
-        pub statistics_interval_ms: u32,
+        pub user: Option<String>,
+        pub password: Option<String>,
+
+        #[serde(default = "KafkaConfig::default_message_max_bytes")]
+        pub message_max_bytes: Option<u32>,
+
+        #[serde(default = "KafkaConfig::default_queue_buffering_max_messages")]
+        pub queue_buffering_max_messages: Option<u32>,
+
+        #[serde(default = "KafkaConfig::default_queue_buffering_max_ms")]
+        pub queue_buffering_max_ms: Option<u32>,
+
+        #[serde(default = "KafkaConfig::default_queue_buffering_max_kbytes")]
+        pub queue_buffering_max_kbytes: Option<u32>,
+
+        #[serde(default = "KafkaConfig::default_retries")]
+        pub retries: Option<u32>,
+
+        #[serde(default = "KafkaConfig::default_message_timeout_ms")]
+        pub message_timeout_ms: Option<u32>,
+
+        #[serde(default = "KafkaConfig::default_request_required_acks")]
+        pub request_required_acks: Option<i32>,
+
+        #[serde(default = "KafkaConfig::default_request_timeout_ms")]
+        pub request_timeout_ms: Option<u32>,
+
+        #[serde(default = "KafkaConfig::default_statistics_interval_ms")]
+        pub statistics_interval_ms: Option<u32>,
     }
 
-    impl Config {
+    impl Default for KafkaConfig {
+        fn default() -> Self {
+            return KafkaConfig {
+                brokers: vec![],
+                user: None,
+                password: None,
+                message_max_bytes: KafkaConfig::default_message_max_bytes(),
+                queue_buffering_max_messages: KafkaConfig::default_queue_buffering_max_messages(),
+                queue_buffering_max_ms: KafkaConfig::default_queue_buffering_max_ms(),
+                queue_buffering_max_kbytes: KafkaConfig::default_queue_buffering_max_kbytes(),
+                retries: KafkaConfig::default_retries(),
+                message_timeout_ms: KafkaConfig::default_message_timeout_ms(),
+                request_required_acks: KafkaConfig::default_request_required_acks(),
+                request_timeout_ms: KafkaConfig::default_request_timeout_ms(),
+                statistics_interval_ms: KafkaConfig::default_statistics_interval_ms(),
+            };
+        }
+    }
+
+    impl KafkaConfig {
+        fn default_message_max_bytes() -> Option<u32> {
+            Some(DEFAULT_MESSAGE_MAX_BYTES)
+        }
+
+        fn default_queue_buffering_max_messages() -> Option<u32> {
+            Some(DEFAULT_QUEUE_BUFFERING_MAX_MESSAGES)
+        }
+
+        fn default_queue_buffering_max_ms() -> Option<u32> {
+            Some(DEFAULT_QUEUE_BUFFERING_MAX_MS)
+        }
+
+        fn default_queue_buffering_max_kbytes() -> Option<u32> {
+            Some(DEFAULT_QUEUE_BUFFERING_MAX_KBYTES)
+        }
+
+        fn default_retries() -> Option<u32> {
+            Some(DEFAULT_RETRIES)
+        }
+
+        fn default_message_timeout_ms() -> Option<u32> {
+            Some(DEFAULT_MESSAGE_TIMEOUT_MS)
+        }
+
+        fn default_request_required_acks() -> Option<i32> {
+            Some(DEFAULT_REQUEST_REQUIRED_ACKS)
+        }
+
+        fn default_request_timeout_ms() -> Option<u32> {
+            Some(DEFAULT_REQUEST_TIMEOUT_MS)
+        }
+
+        fn default_statistics_interval_ms() -> Option<u32> {
+            Some(DEFAULT_STATISTICS_INTERVAL_MS)
+        }
+
         pub fn to_hash(&self) -> HashMap<String, String> {
             let mut mp: HashMap<String, String> = HashMap::new();
             mp.insert(String::from("bootstrap.servers"), self.brokers.join(","));
-            if self.user != "" {
-                mp.insert(String::from("sasl.username"), self.user.clone());
+            if self.user.is_some() {
+                mp.insert(
+                    String::from("sasl.username"),
+                    self.user.as_ref().unwrap().to_string(),
+                );
             }
-            if self.password != "" {
-                mp.insert(String::from("sasl.password"), self.password.clone());
+            if self.user.is_some() {
+                mp.insert(
+                    String::from("sasl.password"),
+                    self.password.as_ref().unwrap().to_string(),
+                );
             }
             mp.insert(
                 String::from("message.max.bytes"),
-                self.message_max_bytes.to_string(),
+                self.message_max_bytes.unwrap().to_string(),
             );
             mp.insert(
                 String::from("queue.buffering.max.messages"),
-                self.queue_buffering_max_messages.to_string(),
+                self.queue_buffering_max_messages.unwrap().to_string(),
             );
             mp.insert(
                 String::from("queue.buffering.max.ms"),
-                self.queue_buffering_max_ms.to_string(),
+                self.queue_buffering_max_ms.unwrap().to_string(),
             );
-            mp.insert(String::from("retries"), self.retries.to_string());
+            mp.insert(String::from("retries"), self.retries.unwrap().to_string());
             mp.insert(
                 String::from("message.timeout.ms"),
-                self.message_timeout_ms.to_string(),
+                self.message_timeout_ms.unwrap().to_string(),
             );
             mp.insert(
                 String::from("request.timeout.ms"),
-                self.request_timeout_ms.to_string(),
+                self.request_timeout_ms.unwrap().to_string(),
             );
             mp.insert(
                 String::from("request.required.acks"),
-                self.request_required_acks.to_string(),
+                self.request_required_acks.unwrap().to_string(),
             );
             mp.insert(
                 String::from("queue.buffering.max.kbytes"),
-                self.queue_buffering_max_kbytes.to_string(),
+                self.queue_buffering_max_kbytes.unwrap().to_string(),
             );
             mp.insert(
                 String::from("statistics.interval.ms"),
-                self.statistics_interval_ms.to_string(),
+                self.statistics_interval_ms.unwrap().to_string(),
             );
             return mp;
-        }
-
-        pub fn new_empty() -> Config {
-            return Config {
-                brokers: vec![],
-                user: "".to_string(),
-                password: "".to_string(),
-                message_max_bytes: 0,
-                queue_buffering_max_messages: 0,
-                queue_buffering_max_ms: 0,
-                queue_buffering_max_kbytes: 0,
-                retries: 0,
-                message_timeout_ms: 0,
-                request_required_acks: 0,
-                request_timeout_ms: 0,
-                statistics_interval_ms: 0,
-            };
-        }
-
-        pub fn new_from_yaml(yml: &Option<&Yaml>) -> Config {
-            let hash = yml.unwrap().as_hash().unwrap();
-
-            // NOTE(a.petrukhin): panic here is OK due to bad config.
-            let brokers_arr = hash
-                .get(&Yaml::from_str("brokers"))
-                .unwrap()
-                .clone()
-                .into_vec()
-                .unwrap();
-
-            let mut brokers: Vec<String> = Vec::new();
-            for v in brokers_arr.iter() {
-                brokers.push(v.clone().into_string().unwrap());
-            }
-
-            // NOTE(a.petrukhin): I believe there is a better way to do this.
-            let user_raw = hash.get(&Yaml::from_str("user"));
-            let mut user = String::from(DEFAULT_USER);
-            if !user_raw.is_none() {
-                user = user_raw.unwrap().clone().into_string().unwrap();
-            }
-
-            let password_raw = hash.get(&Yaml::from_str("password"));
-            let mut password = String::from(DEFAULT_PASSWORD);
-            if !password_raw.is_none() {
-                password = password_raw.unwrap().clone().into_string().unwrap();
-            }
-
-            let message_max_bytes_raw = hash.get(&Yaml::from_str("message_max_bytes"));
-            let mut message_max_bytes = DEFAULT_MESSAGE_MAX_BYTES;
-            if !message_max_bytes_raw.is_none() {
-                message_max_bytes =
-                    message_max_bytes_raw.unwrap().clone().into_i64().unwrap() as u32;
-            }
-
-            let queue_buffering_max_messages_raw =
-                hash.get(&Yaml::from_str("queue_buffering_max_messages"));
-            let mut queue_buffering_max_messages = DEFAULT_QUEUE_BUFFERING_MAX_MESSAGES;
-            if !queue_buffering_max_messages_raw.is_none() {
-                queue_buffering_max_messages = queue_buffering_max_messages_raw
-                    .unwrap()
-                    .clone()
-                    .into_i64()
-                    .unwrap() as u32;
-            }
-
-            let queue_buffering_max_ms_raw =
-                hash.get(&Yaml::from_str("queue_buffering_max_ms")).clone();
-            let mut queue_buffering_max_ms = DEFAULT_QUEUE_BUFFERING_MAX_MS;
-            if !queue_buffering_max_ms_raw.is_none() {
-                queue_buffering_max_ms = queue_buffering_max_ms_raw
-                    .unwrap()
-                    .clone()
-                    .into_i64()
-                    .unwrap() as u32;
-            }
-
-            let retries_raw = hash.get(&Yaml::from_str("retries")).clone();
-            let mut retries = DEFAULT_RETRIES;
-            if !retries_raw.is_none() {
-                retries = retries_raw.clone().unwrap().clone().as_i64().unwrap() as u32;
-            }
-
-            let message_timeout_ms_raw = hash.get(&Yaml::from_str("message_timeout_ms")).clone();
-            let mut message_timeout_ms = DEFAULT_MESSAGE_TIMEOUT_MS;
-            if !message_timeout_ms_raw.is_none() {
-                message_timeout_ms =
-                    message_timeout_ms_raw.unwrap().clone().as_i64().unwrap() as u32;
-            }
-
-            let queue_buffering_max_kbytes_raw = hash
-                .get(&Yaml::from_str("queue_buffering_max_kbytes"))
-                .clone();
-            let mut queue_buffering_max_kbytes = DEFAULT_QUEUE_BUFFERING_MAX_KBYTES;
-            if !queue_buffering_max_messages_raw.is_none() {
-                queue_buffering_max_kbytes = queue_buffering_max_kbytes_raw
-                    .unwrap()
-                    .clone()
-                    .as_i64()
-                    .unwrap() as u32;
-            }
-
-            let request_required_acks_raw = hash.get(&Yaml::from_str("request_required_acks"));
-            let mut request_required_acks = DEFAULT_REQUEST_REQUIRED_ACKS;
-            if !request_required_acks_raw.is_none() {
-                request_required_acks =
-                    request_required_acks_raw.unwrap().clone().as_i64().unwrap() as i32;
-            }
-
-            let request_timeout_ms_raw = hash.get(&Yaml::from_str("request_timeout_ms"));
-            let mut request_timeout_ms = DEFAULT_REQUEST_TIMEOUT_MS;
-            if !request_timeout_ms_raw.is_none() {
-                request_timeout_ms =
-                    request_required_acks_raw.unwrap().clone().as_i64().unwrap() as u32;
-            }
-
-            let statistics_interval_ms_raw = hash.get(&Yaml::from_str("statistics_interval_ms"));
-            let mut statistics_interval_ms = DEFAULT_STATISTICS_INTERVAL_MS;
-            if statistics_interval_ms_raw.is_some() {
-                statistics_interval_ms = statistics_interval_ms_raw
-                    .unwrap()
-                    .clone()
-                    .as_i64()
-                    .unwrap() as u32;
-            }
-
-            return Config {
-                brokers,
-                user,
-                password,
-                message_max_bytes,
-                queue_buffering_max_messages,
-                queue_buffering_max_ms,
-                queue_buffering_max_kbytes,
-                retries,
-                message_timeout_ms,
-                request_required_acks,
-                request_timeout_ms,
-                statistics_interval_ms,
-            };
         }
     }
 }
@@ -651,7 +588,7 @@ pub mod producer {
         }
     }
 
-    pub fn new(cfg: super::config::Config) -> Arc<Producer> {
+    pub fn new(cfg: super::config::KafkaConfig) -> Arc<Producer> {
         let cf = cfg.to_hash();
         let mut client_config = rdkafka::ClientConfig::new();
         for (k, v) in cf.iter() {
