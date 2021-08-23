@@ -111,7 +111,7 @@ pub mod config {
                     self.user.as_ref().unwrap().to_string(),
                 );
             }
-            if self.user.is_some() {
+            if self.password.is_some() {
                 mp.insert(
                     String::from("sasl.password"),
                     self.password.as_ref().unwrap().to_string(),
