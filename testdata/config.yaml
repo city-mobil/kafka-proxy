@@ -6,7 +6,6 @@ kafka:
   queue_buffering_max_kbytes: 2048 # 2 MiB
 
 http:
-  port: 4242
-  metrics_port: 8088
+  metrics_port: 8089
 
 output_file: "/dev/stdout"
