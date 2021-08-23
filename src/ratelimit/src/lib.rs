@@ -1,7 +1,10 @@
+pub mod config;
+
+use serde::Deserialize;
 use std::cell::Cell;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct Rule {
     pub topic_name: String,
     pub max_requests_per_minute: u32,

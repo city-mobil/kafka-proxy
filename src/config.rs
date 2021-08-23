@@ -12,6 +12,9 @@ pub struct KafkaProxyConfig {
 
     #[serde(default)]
     kafka: kafka::kafka::config::KafkaConfig,
+
+    #[serde(default)]
+    ratelimit: ratelimit::config::Config,
 }
 
 impl KafkaProxyConfig {
@@ -49,6 +52,10 @@ impl KafkaProxyConfig {
 
     pub fn get_kafka_config(&self) -> kafka::kafka::config::KafkaConfig {
         self.kafka.clone()
+    }
+
+    pub fn get_ratelimit_config(&self) -> ratelimit::config::Config {
+        self.ratelimit.clone()
     }
 }
 
