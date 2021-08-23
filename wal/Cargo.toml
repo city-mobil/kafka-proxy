@@ -1,0 +1,16 @@
+[package]
+name = "wal"
+version = "0.1.0"
+authors = ["Artem Beliankin <a.belyankin@city-mobil.ru>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+chrono = "0.4"
+bincode = "1.3.3"
+serde = { version = "1.0.101", optional = true, features = ["derive"] }
+
+[features]
+default = ["std"]
+std = [ "serde" ]

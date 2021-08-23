@@ -25,3 +25,9 @@ uuid = { version = "0.8", features = ["serde", "v4"] }
 [features]
 default = ["std"]
 std = [ "serde" ]
+
+[workspace]
+
+members = [
+    "wal",
+]
