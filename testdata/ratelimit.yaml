@@ -1,0 +1,7 @@
+ratelimit:
+  enabled: true
+  rules:
+    - topic_name: "a"
+      max_requests_per_minute: 42
+    - topic_name: "b"
+      max_requests_per_minute: 44

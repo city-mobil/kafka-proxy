@@ -133,7 +133,6 @@ impl Limiter {
 mod tests {
     use crate::{Bucket, BucketStorage, Limiter, Rule, BUCKET_COUNT};
     use std::cell::Cell;
-    use tokio::test;
 
     fn eq_buckets(a: &Bucket, b: &Bucket) -> bool {
         return a.count == b.count && a.last_ts == b.last_ts;
@@ -144,7 +143,7 @@ mod tests {
     }
 
     #[test]
-    async fn test_new_bucket_storage() {
+    fn test_new_bucket_storage() {
         let b = BucketStorage::new();
         let mut v = std::vec::Vec::new();
         for _ in 0..BUCKET_COUNT {
@@ -159,7 +158,7 @@ mod tests {
     }
 
     #[test]
-    async fn test_check_ratelimit_empty_topic_name() {
+    fn test_check_ratelimit_empty_topic_name() {
         let limiter = Limiter::new(vec![Rule {
             max_requests_per_minute: 0,
             topic_name: String::from("a"),
@@ -168,7 +167,7 @@ mod tests {
     }
 
     #[test]
-    async fn test_check_ratelimit_zero_max_attempts() {
+    fn test_check_ratelimit_zero_max_attempts() {
         let limiter = Limiter::new(vec![Rule {
             max_requests_per_minute: 0,
             topic_name: String::from("a"),
@@ -177,7 +176,7 @@ mod tests {
     }
 
     #[test]
-    async fn test_check_ratelimit_non_existing_rule() {
+    fn test_check_ratelimit_non_existing_rule() {
         let rules = vec![Rule {
             topic_name: String::from("some_topic_2"),
             max_requests_per_minute: 42,
@@ -187,7 +186,7 @@ mod tests {
     }
 
     #[test]
-    async fn test_check_ratelimit_exceeded() {
+    fn test_check_ratelimit_exceeded() {
         let max_requests = 2;
         let rules = vec![Rule {
             topic_name: String::from("some_name"),
@@ -202,7 +201,7 @@ mod tests {
     }
 
     #[test]
-    async fn test_check_ratelimit_passed() {
+    fn test_check_ratelimit_passed() {
         let max_requests = 2;
         let rules = vec![Rule {
             topic_name: String::from("some_name"),
@@ -217,7 +216,7 @@ mod tests {
     }
 
     #[test]
-    async fn test_update_bucket() {
+    fn test_update_bucket() {
         let b = Bucket {
             count: Cell::new(0),
             last_ts: Cell::new(0),
@@ -230,7 +229,7 @@ mod tests {
     }
 
     #[test]
-    async fn test_check_locked() {
+    fn test_check_locked() {
         //
         let mut bs = BucketStorage::new();
         let max_allowed = 42;
