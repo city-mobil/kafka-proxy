@@ -159,7 +159,7 @@ Transfer/sec:      1.85MB
 
 All metrics are available in OpenMetrics(prometheus) format on `:8088` port(non-configurable at v0.0.1-alpha).
 
-At this moment(v0.0.1-alpha) these metrics are available:
+At this moment(v0.1.0) these metrics are available:
 
 - `http_requests_duration` - Histogram of HTTP requests. Label `push/sync` is set when message produced asynchronously, 
 otherwise, `push/async` is set. `code` label is set according to HTTP response status.
@@ -169,11 +169,36 @@ otherwise, `push/async` is set. `code` label is set according to HTTP response s
 - `kafka_errors_count` - Counter of total kafka errors, per topic.
 - `ratelimit_messages_count` - Counter of total ratelimited messages, per topic.
 
+Kafka librdkafka metrics:
+- `kafka_producer_reply_queue_size` - Operations (callbacks, events, etc.) waiting in queue.
+- `kafka_producer_current_messages_in_queue` - Current number of messages in producer queues.
+- `kafka_producer_current_messages_in_queue_bytes` - Current total size of messages in producer queues.
+- `kafka_producer_total_requests_count` - Total number of requests sent to brokers
+- `kafka_producer_total_bytes_sent` - Total number of bytes transmitted to brokers
+- `kafka_producer_total_responses_received` - Total number of responses received from brokers
+- `kafka_producer_total_bytes_received` - Total number of bytes received from brokers
+- `kafka_producer_total_messages_sent` - Total number of messages transmitted (produced) to brokers
+- `kafka_producer_total_messages_bytes_sent` - Total number of bytes transmitted (produced) to brokers
+- `kafka_producer_metadata_cache_topics_count` - Number of topics in the metadata cache
+- `kafka_producer_broker_state` - Broker state (INIT, DOWN, CONNECT, AUTH, APIVERSION_QUERY, AUTH_HANDSHAKE, UP, UPDATE).
+- `kafka_producer_broker_state_age` - The time since the last broker state change, in microseconds
+- `kafka_producer_broker_outbuf_count` - Number of requests awaiting transmission to the broker
+- `kafka_producer_broker_outbuf_msg_count` - Number of messages awaiting transmission to the broker
+- `kafka_producer_broker_waitresp_count` - Number of requests in-flight to the broker that are awaiting response
+- `kafka_producer_broker_waitresp_msg_count` - Number of messages awaiting transmission to the broker
+- `kafka_producer_broker_requests_sent` - Total number of requests sent to the broker
+- `kafka_producer_broker_requests_sent_bytes` - Total number of bytes sent to the broker
+- `kafka_producer_broker_transmission_errors` - Total number of transmission errors
+- `kafka_producer_broker_request_retries` - Total number of request retries
+- `kafka_producer_request_timeouts` - Total number of requests that timed out
+- `kafka_producer_broker_responses_count` - Total number of responses received from the broker
+- `kafka_producer_broker_bytes_received` - Total number of bytes received from the broker
+- `kafka_producer_broker_errors_count` - Total number of received errors
+- `kafka_producer_topic_metadata_age` - The age of the client's metadata for this topic, in milliseconds
+- `kafka_producer_topic_batchsize_avg` - Rolling window statistics for batch sizes, in bytes
+- `kafka_producer_topic_batchcount_avg` - Rolling window statistics for batch message counts
+
 ## Further improvements
 
 1. `Write-Ahead-Log`. Write-Ahead-Log can be a good improvement if pattern of usage is asynchronous producing. Client does not know
 if his records were successfully sent to kafka. Adding `WAL` can improve durability.
-
-2. Configuration improvement. ENVIRONMENT configuration is not supported yet.
-
-3. Internal librdkafka statistics exporting. A lot of information can be collected from internal librdkafka stats.
