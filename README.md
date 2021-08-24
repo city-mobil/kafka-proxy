@@ -92,6 +92,12 @@ http:
   metrics_port: 8088
 
 output_file: "/dev/stdout"
+
+ratelimit: # ratelimit settings.
+  enabled: true # enables or disables ratelimiting.
+  rules: # defines list of rules for concrete topics.
+    - topic_name: "some_topic_name" # concrete topic name.
+      max_requests_per_minute: 42 # maximum requests per minute allowed for concrete topic.
 ```
 
 ## Benchmarks
@@ -161,6 +167,7 @@ otherwise, `push/async` is set. `code` label is set according to HTTP response s
 - `kafka_message_send_duration` - Histogram of kafka message duration before delivery result callback is received, per topic.
 - `kafka_sent_messages` - Counter of total kafka messages sent, per topic.
 - `kafka_errors_count` - Counter of total kafka errors, per topic.
+- `ratelimit_messages_count` - Counter of total ratelimited messages, per topic.
 
 ## Further improvements
 

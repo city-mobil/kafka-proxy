@@ -7,7 +7,7 @@ use rdkafka::producer::future_producer::OwnedDeliveryResult;
 use rdkafka::Timestamp;
 use std::sync::Arc;
 use std::time::Duration;
-use uuid::Uuid;
+//use uuid::Uuid;
 
 pub(crate) mod requests {
     use serde::Deserialize;
@@ -60,6 +60,16 @@ struct Request {
 }
 
 static MESSAGE_RATELIMIT: &str = "ratelimit";
+
+lazy_static::lazy_static!(
+    static ref RATELIMIT_MESSAGES_COUNT: prometheus::IntCounterVec =
+        prometheus::register_int_counter_vec!(
+            "ratelimit_messages_count",
+            "Total number of ratelimited messages",
+            &["topic"]
+        )
+        .unwrap();
+);
 
 impl Request {
     pub(crate) fn new(
@@ -150,15 +160,28 @@ impl Request {
             .collect::<Vec<_>>();
 
         let mut has_errors = false;
-        let mut error_vec = Vec::with_capacity(records.len());
+        // NOTE(shmel1k): Empty vector is used in order to avoid unnecessary allocations.
+        let mut error_vec = vec![];
         for future in futures {
             let f = future.await;
             if f.ratelimit {
+                // TODO(shmel1k): think about moving this stats recording
+                // to some other place.
+                RATELIMIT_MESSAGES_COUNT
+                    .with_label_values(&[&records[f.idx].topic])
+                    .inc();
+
+                slog::warn!(
+                    self.logger,
+                    "message was not sent due to ratelimit overflow";
+                    "topic" => &records[f.idx].topic,
+                );
                 error_vec.push(PushResponseError {
                     error: true,
-                    // TODO(shmel1k): figure about copying here.
-                    message: Some(String::from(MESSAGE_RATELIMIT)),
-                })
+                    message: Some(MESSAGE_RATELIMIT.to_string()),
+                });
+                has_errors = true;
+                continue;
             }
             if !f.result.is_err() {
                 error_vec.push(PushResponseError {
@@ -204,10 +227,13 @@ impl Request {
     }
 }
 
+static RESPONSE_STATUS_OK: &str = "ok";
+static RESPONSE_STATUS_ERR: &str = "err";
+
 impl ApiHandler {
-    fn generate_request_id() -> String {
-        Uuid::new_v4().to_string()
-    }
+    // fn generate_request_id() -> String {
+    //    Uuid::new_v4().to_string()
+    //}
 
     pub async fn handle_push(&self, req: requests::PushRequest) -> requests::PushResponse {
         let request = Request::new(
@@ -221,7 +247,7 @@ impl ApiHandler {
                 let _ = request.push_async(&req).await;
             });
             return requests::PushResponse {
-                status: "ok".to_string(),
+                status: RESPONSE_STATUS_OK.to_string(),
                 errors: vec![],
             };
         }
@@ -231,7 +257,7 @@ impl ApiHandler {
         let await_result = request.push_async(&req).await;
         if !await_result.is_err() {
             return requests::PushResponse {
-                status: "ok".to_string(),
+                status: RESPONSE_STATUS_OK.to_string(),
                 errors: vec![],
             };
         }
@@ -253,7 +279,7 @@ impl ApiHandler {
 
         requests::PushResponse {
             errors: err,
-            status: "error".to_string(),
+            status: RESPONSE_STATUS_ERR.to_string(),
         }
     }
 
