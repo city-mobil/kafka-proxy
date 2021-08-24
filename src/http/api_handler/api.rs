@@ -1,7 +1,10 @@
 use crate::http::api_handler::api::requests::PushResponseError;
 use crate::kafka::kafka::producer;
 use crate::log::kflog;
+use rdkafka::error::KafkaError;
+use rdkafka::message::OwnedMessage;
 use rdkafka::producer::future_producer::OwnedDeliveryResult;
+use rdkafka::Timestamp;
 use std::sync::Arc;
 use std::time::Duration;
 use uuid::Uuid;
@@ -40,24 +43,76 @@ pub(crate) mod requests {
 pub struct ApiHandler {
     logger: kflog::Logger,
     kafka_producer: Arc<producer::Producer>,
+    ratelimiter: Arc<ratelimit::Limiter>,
 }
 
 struct ProduceHelper {
     idx: usize,
     result: OwnedDeliveryResult,
+    // ratelimit identified if ratelimit occurred.
+    ratelimit: bool,
 }
 
 struct Request {
     logger: kflog::Logger,
     kafka_producer: Arc<producer::Producer>,
+    ratelimiter: Arc<ratelimit::Limiter>,
 }
 
+static MESSAGE_RATELIMIT: &str = "ratelimit";
+
 impl Request {
-    pub(crate) fn new(logger: kflog::Logger, kafka_producer: Arc<producer::Producer>) -> Request {
+    pub(crate) fn new(
+        logger: kflog::Logger,
+        kafka_producer: Arc<producer::Producer>,
+        ratelimiter: Arc<ratelimit::Limiter>,
+    ) -> Request {
         Request {
             logger,
             kafka_producer,
+            ratelimiter,
         }
+    }
+
+    fn new_ratelimit_error() -> OwnedDeliveryResult {
+        return Err((
+            KafkaError::Canceled,
+            OwnedMessage::new(
+                None,
+                None,
+                "".to_string(),
+                Timestamp::NotAvailable,
+                0,
+                0,
+                None,
+            ),
+        ));
+    }
+
+    fn check_ratelimit(&self, topic: &String) -> Result<(), ProduceHelper> {
+        let ratelimit_result = self.ratelimiter.check(topic);
+        if ratelimit_result.is_err() {
+            slog::info!(
+                self.logger,
+                "got error when tried to check ratelimit";
+                "topic" => topic,
+                "error" => ratelimit_result.err(),
+            );
+            return Err(ProduceHelper {
+                idx: 0,
+                result: Request::new_ratelimit_error(),
+                ratelimit: true,
+            });
+        }
+        if !ratelimit_result.unwrap() {
+            return Err(ProduceHelper {
+                idx: 0,
+                result: Request::new_ratelimit_error(),
+                ratelimit: true,
+            });
+        }
+
+        Ok(())
     }
 
     async fn produce_records(
@@ -68,6 +123,13 @@ impl Request {
             .iter()
             .enumerate()
             .map(|record| async move {
+                let ratelimit_result = self.check_ratelimit(&record.1.topic);
+                if ratelimit_result.is_err() {
+                    let mut err = ratelimit_result.unwrap_err();
+                    err.idx = record.0 as usize;
+                    return err;
+                }
+
                 let result = self
                     .kafka_producer
                     .clone()
@@ -82,6 +144,7 @@ impl Request {
                 ProduceHelper {
                     idx: record.0 as usize,
                     result,
+                    ratelimit: false,
                 }
             })
             .collect::<Vec<_>>();
@@ -90,6 +153,13 @@ impl Request {
         let mut error_vec = Vec::with_capacity(records.len());
         for future in futures {
             let f = future.await;
+            if f.ratelimit {
+                error_vec.push(PushResponseError {
+                    error: true,
+                    // TODO(shmel1k): figure about copying here.
+                    message: Some(String::from(MESSAGE_RATELIMIT)),
+                })
+            }
             if !f.result.is_err() {
                 error_vec.push(PushResponseError {
                     error: false,
@@ -140,7 +210,11 @@ impl ApiHandler {
     }
 
     pub async fn handle_push(&self, req: requests::PushRequest) -> requests::PushResponse {
-        let request = Request::new(self.logger.clone(), self.kafka_producer.clone());
+        let request = Request::new(
+            self.logger.clone(),
+            self.kafka_producer.clone(),
+            self.ratelimiter.clone(),
+        );
 
         if !req.wait_for_send.unwrap_or_default() {
             tokio::spawn(async move {
@@ -183,10 +257,15 @@ impl ApiHandler {
         }
     }
 
-    pub fn new(logger: kflog::Logger, kafka_producer: Arc<producer::Producer>) -> Arc<ApiHandler> {
+    pub fn new(
+        logger: kflog::Logger,
+        kafka_producer: Arc<producer::Producer>,
+        ratelimiter: Arc<ratelimit::Limiter>,
+    ) -> Arc<ApiHandler> {
         Arc::new(ApiHandler {
             logger,
             kafka_producer,
+            ratelimiter,
         })
     }
 }

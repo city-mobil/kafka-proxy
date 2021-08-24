@@ -20,7 +20,6 @@ pub struct KafkaProxyConfig {
 impl KafkaProxyConfig {
     pub fn new(arg_matches: clap::ArgMatches) -> KafkaProxyConfig {
         let config_file = arg_matches.value_of("config").unwrap();
-        // NOTE(a.petrukhin): default initialization.
         let config = KafkaProxyConfig::initialize_config(&String::from(config_file));
         if config.is_err() {
             panic!(

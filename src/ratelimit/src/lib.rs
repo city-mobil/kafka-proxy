@@ -38,6 +38,7 @@ type Storage = std::collections::HashMap<String, std::sync::Mutex<BucketStorage>
 pub struct Limiter {
     container: std::sync::Mutex<Storage>,
     rules: std::collections::HashMap<String, Rule>,
+    config: config::Config,
 }
 
 const BUCKET_COUNT: u64 = 60;
@@ -70,6 +71,10 @@ impl Limiter {
     }
 
     pub fn check(&self, topic_name: &String) -> Result<bool, String> {
+        if !self.config.enabled() {
+            return Ok(true);
+        }
+
         if topic_name == "" {
             // NOTE(shmel1k): if topic_name is empty, ratelimit is not checked.
             return Ok(true);
@@ -113,25 +118,26 @@ impl Limiter {
         return ts % BUCKET_COUNT;
     }
 
-    pub fn new(rules: std::vec::Vec<Rule>) -> Limiter {
+    pub fn new(config: config::Config) -> Limiter {
         let mut rls = std::collections::HashMap::new();
         let mut storage = Storage::new();
-        for rule in rules {
+        for rule in config.get_rules() {
             rls.insert(rule.topic_name.clone(), rule.clone());
             let b = BucketStorage::new();
-            storage.insert(rule.topic_name, std::sync::Mutex::new(b));
+            storage.insert(rule.topic_name.clone(), std::sync::Mutex::new(b));
         }
 
         Limiter {
             rules: rls,
             container: std::sync::Mutex::from(storage),
+            config,
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{Bucket, BucketStorage, Limiter, Rule, BUCKET_COUNT};
+    use crate::{config, Bucket, BucketStorage, Limiter, Rule, BUCKET_COUNT};
     use std::cell::Cell;
 
     fn eq_buckets(a: &Bucket, b: &Bucket) -> bool {
@@ -158,20 +164,36 @@ mod tests {
     }
 
     #[test]
+    fn test_check_ratelimit_limiter_disabled() {
+        //
+        let limiter = Limiter::new(config::Config {
+            rules: vec![],
+            enabled: false,
+        });
+        assert_eq!(limiter.check(&String::from("")).unwrap(), true);
+    }
+
+    #[test]
     fn test_check_ratelimit_empty_topic_name() {
-        let limiter = Limiter::new(vec![Rule {
-            max_requests_per_minute: 0,
-            topic_name: String::from("a"),
-        }]);
+        let limiter = Limiter::new(config::Config {
+            rules: vec![Rule {
+                max_requests_per_minute: 0,
+                topic_name: String::from("a"),
+            }],
+            enabled: true,
+        });
         assert_eq!(limiter.check(&String::from("")).unwrap(), true);
     }
 
     #[test]
     fn test_check_ratelimit_zero_max_attempts() {
-        let limiter = Limiter::new(vec![Rule {
-            max_requests_per_minute: 0,
-            topic_name: String::from("a"),
-        }]);
+        let limiter = Limiter::new(config::Config {
+            rules: vec![Rule {
+                max_requests_per_minute: 0,
+                topic_name: String::from("a"),
+            }],
+            enabled: true,
+        });
         assert_eq!(limiter.check(&String::from("a")).unwrap(), true);
     }
 
@@ -181,7 +203,10 @@ mod tests {
             topic_name: String::from("some_topic_2"),
             max_requests_per_minute: 42,
         }];
-        let limiter = Limiter::new(rules);
+        let limiter = Limiter::new(config::Config {
+            rules,
+            enabled: true,
+        });
         assert_eq!(limiter.check(&String::from("some_topic")).unwrap(), true);
     }
 
@@ -192,7 +217,10 @@ mod tests {
             topic_name: String::from("some_name"),
             max_requests_per_minute: max_requests,
         }];
-        let limiter = Limiter::new(rules);
+        let limiter = Limiter::new(config::Config {
+            rules,
+            enabled: true,
+        });
         for _ in 0..max_requests {
             assert_eq!(limiter.check(&String::from("some_name")).err(), None);
         }
@@ -207,7 +235,10 @@ mod tests {
             topic_name: String::from("some_name"),
             max_requests_per_minute: max_requests,
         }];
-        let limiter = Limiter::new(rules);
+        let limiter = Limiter::new(config::Config {
+            rules,
+            enabled: true,
+        });
         for _ in 0..max_requests - 1 {
             assert_eq!(limiter.check(&String::from("some_name")).err(), None);
         }
