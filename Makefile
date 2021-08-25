@@ -1,8 +1,8 @@
 all: build
 
-build: test build_release
+build: build_release
 
-build_no_tests: build_release
+build_with_tests: test build_release
 
 build_release:
 	cargo build --release
