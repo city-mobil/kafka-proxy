@@ -13,7 +13,8 @@ RUN apt update
 RUN apt install -y \
     build-essential \
     curl \
-    cmake
+    cmake \
+    make
 
 RUN apt-get update
 
