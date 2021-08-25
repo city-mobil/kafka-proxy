@@ -173,39 +173,39 @@ pub mod producer {
     const BROKER_STATE_UPDATE: i64 = 7;
 
     struct KprfClientContext {
-        /// The number of operations (callbacks, events, etc.) waiting in queue.
+        /// Number of operations (callbacks, events, etc.) waiting in queue.
         ///
         /// librdkafka 'replyq'
         reply_queue_size: prometheus::IntCounter,
-        /// The current number of messages in producer queues.
+        /// Current number of messages in producer queues.
         ///
         /// librdkafka 'msg_cnt'
         current_messages_in_queue: prometheus::IntCounter,
-        /// The current total size of messages in producer queues.
+        /// Current total size of messages in producer queues.
         ///
         /// librdkafka 'msg_size'
         current_messages_in_queue_bytes: prometheus::IntCounter,
-        /// The total number of requests sent to brokers.
+        /// Total number of requests sent to brokers.
         ///
         /// librdkafka 'tx'
         total_requests_count: prometheus::IntCounter,
-        /// The total number of bytes transmitted to brokers.
+        /// Total number of bytes transmitted to brokers.
         ///
         /// librdkafka 'tx_bytes'
         total_bytes_sent: prometheus::IntCounter, // librdkafka 'tx_bytes'
-        /// The total number of responses received from brokers.
+        /// Total number of responses received from brokers.
         ///
         /// librdkafka 'rx'
         total_responses_received: prometheus::IntCounter,
-        /// The total number of bytes received from brokers.
+        /// Total number of bytes received from brokers.
         ///
         /// librdkafka 'rx_bytes'
         total_bytes_received: prometheus::IntCounter,
-        /// The total number of messages transmitted (produced) to brokers.
+        /// Total number of messages transmitted (produced) to brokers.
         ///
         /// librdkafka 'txmsgs'
         total_messages_sent: prometheus::IntCounter,
-        /// The total number of bytes transmitted (produced) to brokers.
+        /// Total number of bytes transmitted (produced) to brokers.
         ///
         /// librdkafka 'txmsg_bytes'
         total_messages_sent_bytes: prometheus::IntCounter,
@@ -213,7 +213,7 @@ pub mod producer {
         ///
         /// librdkafka 'metadata_cache_count'
         metadata_cache_topics_count: prometheus::IntGauge,
-        /// The broker state (INIT, DOWN, CONNECT, AUTH, APIVERSION_QUERY,
+        /// Broker state (INIT, DOWN, CONNECT, AUTH, APIVERSION_QUERY,
         /// AUTH_HANDSHAKE, UP, UPDATE).
         ///
         /// librdkafka 'brokers.state'
@@ -222,53 +222,53 @@ pub mod producer {
         ///
         /// librdkafka 'brokers.stateage'
         broker_stateage: prometheus::IntGaugeVec,
-        /// The number of requests awaiting transmission to the broker.
+        /// Number of requests awaiting transmission to the broker.
         ///
         /// librdkafka 'brokers.outbuf_cnt'
         broker_outbuf_count: prometheus::IntCounterVec,
-        /// The number of messages awaiting transmission to the broker.
+        /// Number of messages awaiting transmission to the broker.
         ///
         /// librdkafka 'brokers.outbuf_msg_cnt'
         broker_outbuf_msg_count: prometheus::IntCounterVec,
-        /// The number of requests in-flight to the broker that are awaiting a
+        /// Number of requests in-flight to the broker that are awaiting
         /// response.
         ///
         /// librdkafka 'brokers.waitresp_cnt'
         broker_waitresp_count: prometheus::IntCounterVec,
-        /// The number of messages in-flight to the broker that are awaiting a
+        /// Number of messages in-flight to the broker that are awaiting a
         /// response.
         ///
         /// librdkafka 'brokers.waitresp_msg_cnt'
         broker_waitresp_msg_count: prometheus::IntCounterVec,
-        /// The total number of requests sent to the broker.
+        /// Total number of requests sent to the broker.
         ///
         /// librdkafka 'brokers.tx'
         broker_requests_sent: prometheus::IntCounterVec,
-        /// The total number of bytes sent to the broker.
+        /// Total number of bytes sent to the broker.
         ///
         /// librdkafka 'brokers.txbytes'
         broker_requests_sent_bytes: prometheus::IntCounterVec,
-        /// The total number of transmission errors.
+        /// Total number of transmission errors.
         ///
         /// librdkafka 'brokers.txerrs'
         broker_transmission_errors: prometheus::IntCounterVec,
-        /// The total number of request retries.
+        /// Total number of request retries.
         ///
         /// librdkafka 'brokers.txretries'
         broker_request_retries: prometheus::IntCounterVec,
-        /// The total number of requests that timed out.
+        /// Total number of requests that timed out.
         ///
         /// librdkafka 'brokers.req_timeouts'
         broker_request_timeouts: prometheus::IntCounterVec,
-        /// The total number of responses received from the broker.
+        /// Total number of responses received from the broker.
         ///
         /// librdkafka 'brokers.rx'
         broker_responses_count: prometheus::IntCounterVec,
-        /// The total number of bytes received from the broker.
+        /// Total number of bytes received from the broker.
         ///
         /// librdkafka 'brokers.rxbytes'
         broker_bytes_received: prometheus::IntCounterVec,
-        /// The total number of received errors.
+        /// Total number of received errors.
         ///
         /// librdkafka 'brokers.rxerrs'
         broker_errors_count: prometheus::IntCounterVec,

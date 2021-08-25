@@ -22,7 +22,7 @@ RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
 WORKDIR /kprf
 COPY . ./
 
-RUN cargo build --release
+RUN make
 
 FROM ubuntu:20.04
 

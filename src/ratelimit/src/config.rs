@@ -4,8 +4,8 @@ use serde::Deserialize;
 
 #[derive(Clone, Deserialize)]
 pub struct Config {
-    rules: std::vec::Vec<Rule>,
-    enabled: bool,
+    pub rules: std::vec::Vec<Rule>,
+    pub enabled: bool,
 }
 
 impl Default for Config {

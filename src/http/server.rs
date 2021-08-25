@@ -29,10 +29,12 @@ impl Server {
         &mut self,
         logger: kflog::Logger,
         kafka_producer: Arc<kafka::producer::Producer>,
+        ratelimiter: Arc<ratelimit::Limiter>,
         shutdown_rx: Receiver<String>,
     ) -> Receiver<i8> {
         let logger_cloned = logger.clone();
-        let api_handler = ApiHandler::new(logger_cloned.clone(), kafka_producer.clone());
+        let api_handler =
+            ApiHandler::new(logger_cloned.clone(), kafka_producer.clone(), ratelimiter);
         let routes = handlers::filter::new_api(logger.clone(), api_handler);
 
         let (shutdown_completed_tx, shutdown_completed_rx) = oneshot::channel::<i8>();

@@ -6,6 +6,7 @@ mod metrics;
 
 use crate::log::kflog;
 use clap::ArgMatches;
+use std::sync::Arc;
 use tokio::sync::oneshot;
 
 fn app_args<'a>() -> ArgMatches<'a> {
@@ -33,6 +34,8 @@ async fn main() {
     let http_server_config = http::server::Config::new(http_config.port());
     let mut server = http::server::Server::new_from_config(http_server_config);
 
+    let ratelimiter = ratelimit::Limiter::new(cfg.get_ratelimit_config());
+
     let (shutdown_tx, shutdown_rx) = oneshot::channel::<String>();
     let (shutdown_metrics_tx, shutdown_metrics_rx) = oneshot::channel::<String>();
 
@@ -44,8 +47,12 @@ async fn main() {
     let metrics_shutdown_rx = metrics_server.start_server(logger.clone(), shutdown_metrics_rx);
 
     // TODO(shmel1k): improve graceful shutdown behavior.
-    let main_server_shutdown_rx =
-        server.start_server(logger.clone(), kafka_producer.clone(), shutdown_rx);
+    let main_server_shutdown_rx = server.start_server(
+        logger.clone(),
+        kafka_producer.clone(),
+        Arc::new(ratelimiter),
+        shutdown_rx,
+    );
     tokio::select! {
         _ = tokio::signal::ctrl_c() => {
             slog::info!(logger, "shutting down application");

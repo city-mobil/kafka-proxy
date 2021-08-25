@@ -1,7 +1,6 @@
 all: build
 
-build: test
-	cargo build
+build: test build_release
 
 build_no_tests: build_release
 
