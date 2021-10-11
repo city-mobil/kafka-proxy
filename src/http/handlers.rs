@@ -39,6 +39,8 @@ mod handler {
     use uuid::Uuid;
     use warp::Reply;
 
+    const MAX_NORMAL_REQUEST_TIME: f64 = 0.01; // todo extract to config
+
     lazy_static::lazy_static! {
         static ref REQUEST_DURATION: prometheus::HistogramVec = prometheus::register_histogram_vec!(
             "http_requests_duration",
@@ -98,7 +100,7 @@ mod handler {
             .with_label_values(&[&status_code.as_u16().to_string(), &method])
             .observe(passed);
 
-        if passed >= 0.5 {
+        if passed >= MAX_NORMAL_REQUEST_TIME {
             slog::warn!(
                 logger,
                 "handle_push was too slow";
