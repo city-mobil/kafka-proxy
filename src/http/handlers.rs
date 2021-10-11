@@ -71,9 +71,11 @@ mod handler {
 
         let passed = match passed_result {
             Err(e) => {
-                slog::warn!(logger,
-            "got error when tried to get duration_since";
-            "error" => e.to_string());
+                slog::error!(logger,
+                    "got error when tried to get duration_since";
+                    "error" => e.to_string(),
+                    "request_id" => request_id,
+                );
                 0.0
             }
             Ok(psd) => (psd.as_micros() as f64) / 1000.0,
@@ -96,8 +98,16 @@ mod handler {
             .with_label_values(&[&status_code.as_u16().to_string(), &method])
             .observe(passed);
 
-        // TODO(shmel1k): add errors to log.
-        slog::info!(
+        if passed >= 0.5 {
+            slog::warn!(
+                logger,
+                "handle_push was too slow";
+                "request_id" => request_id,
+                "passed" => (passed).to_string() + "ms",
+            );
+        }
+
+        slog::debug!(
             logger,
             "proceeded_request";
             "request_id" => request_id,

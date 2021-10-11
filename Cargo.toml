@@ -2,7 +2,7 @@
 name = "kprf"
 version = "0.1.0"
 authors = [
-    "Aleksandr Petrukhin <a.petrukhin@city-mobil.ru>",
+    "Aleksandr Petrukhin <shmeleine@gmail.com>",
     "Artem Beliankin <log.wil.log@gmail.com>",
 ]
 edition = "2018"
@@ -18,7 +18,7 @@ warp = "0.3"
 serde = { version = "1.0.101", optional = true, features = ["derive"] }
 rdkafka = { version = "0.25", features = ["cmake-build"] }
 slog-json = "2.3.0"
-slog = { version = "2.7.0", features = ["release_max_level_warn"] }
+slog = { version = "2.7.0", features = ["release_max_level_info"] }
 slog-async = "2.6.0"
 slog-term = "2.8.0"
 prometheus = "0.12.0"
