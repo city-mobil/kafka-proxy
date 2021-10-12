@@ -47,7 +47,8 @@ async fn main() {
     let metrics_server = metrics::metrics::Server::new(metrics::metrics::ServerConfig {
         port: cfg.get_http_config().metrics_port(),
     });
-    let metrics_shutdown_rx = metrics_server.start_server(logger.clone(), shutdown_metrics_rx);
+    let metrics_shutdown_rx =
+        metrics_server.start_server(logger.clone(), shutdown_metrics_rx, app_info.clone());
 
     // TODO(shmel1k): improve graceful shutdown behavior.
     slog::info!(
