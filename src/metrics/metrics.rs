@@ -46,23 +46,26 @@ pub struct ServerConfig {
 }
 
 pub struct Server {
-    /// The current application meta data.
-    app_metadata: prometheus::GaugeVec,
-
     config: ServerConfig,
 }
 
 impl Server {
     pub fn new(config: ServerConfig) -> Server {
-        return Server {
-            app_metadata: prometheus::register_gauge_vec!(
-                "kprf_app_version",
-                "Kprf application version",
-                &["version", "commit_hash"]
-            )
-            .unwrap(),
-            config,
-        };
+        return Server { config };
+    }
+
+    fn initialize_base_metrics(&self, app_info: AppMetadata) {
+        let app_version = &app_info.get_version() as &str;
+        let commit_hash = &app_info.get_commit_hash() as &str;
+        let labels = [app_version, commit_hash];
+
+        let app_metadata = prometheus::register_gauge_vec!(
+            "kprf_app_metadata",
+            "Kprf application metadata",
+            &["version", "commit_hash"]
+        )
+        .unwrap();
+        app_metadata.with_label_values(&labels).set(0.0);
     }
 
     pub fn start_server(
@@ -71,10 +74,7 @@ impl Server {
         shutdown_rx: Receiver<String>,
         app_info: AppMetadata,
     ) -> Receiver<i8> {
-        let app_version = &app_info.get_version() as &str;
-        let commit_hash = &app_info.get_commit_hash() as &str;
-        let labels = [app_version, commit_hash];
-        self.app_metadata.with_label_values(&labels).set(0.0);
+        self.initialize_base_metrics(app_info);
 
         let route = warp::path!("metrics")
             .and(metrics::with_logger(logger.clone()))
