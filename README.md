@@ -76,7 +76,10 @@ At this moment, this options from [librdkafka](https://github.com/edenhill/librd
 - `kafka.request_timeout_ms` - alias for `request.timeout.ms` from librdkafka. Default value is `30000`.
 - `kafka.request_required_acks` - alias for `request.required.acks` from librdkafka. Default value is `-1`.
 - `http.port` - port for HTTP server for producing messages. Default value is `4242`
+- `http.metrics_port` - port for HTTP server for metrics. Default value is `8088`
 - `output_file` - output file for logging. Default value is `/dev/stdout`
+- `ratelimit.enabled` - enable or disable rate limits. Default value is `false`
+- `ratelimit.rules` - rules for rate limits. Default value is `[]`
 
 ### Example configuration
 ```yaml
