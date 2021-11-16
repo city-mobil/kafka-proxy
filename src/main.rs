@@ -6,6 +6,7 @@ mod metrics;
 
 use crate::log::kflog;
 use clap::ArgMatches;
+use std::sync::Arc;
 use tokio::sync::oneshot;
 
 fn app_args<'a>() -> ArgMatches<'a> {
@@ -39,25 +40,27 @@ async fn main() {
 
     let mut http_server = init_http_server(cfg.get_http_config());
 
+    let ratelimiter = ratelimit::Limiter::new(cfg.get_ratelimit_config());
+
     let (shutdown_tx, shutdown_rx) = oneshot::channel::<String>();
     let (shutdown_metrics_tx, shutdown_metrics_rx) = oneshot::channel::<String>();
 
     let kafka_producer = kafka::kafka::producer::new(cfg.get_kafka_config());
 
     let metrics_server = metrics::metrics::Server::new(metrics::metrics::ServerConfig {
-        port: cfg.get_http_config().metrics_port(),
+        port: http_config.metrics_port(),
     });
     let metrics_shutdown_rx =
         metrics_server.start_server(logger.clone(), shutdown_metrics_rx, app_info.clone());
 
     // TODO(shmel1k): improve graceful shutdown behavior.
-    slog::info!(
-        logger,
-        "starting main http server";
-        "port" => cfg.get_http_config().metrics_port(),
+    let main_server_shutdown_rx = server.start_server(
+        logger.clone(),
+        kafka_producer.clone(),
+        Arc::new(ratelimiter),
+        shutdown_rx,
     );
-    let main_server_shutdown_rx =
-        http_server.start_server(logger.clone(), kafka_producer.clone(), shutdown_rx);
+
     tokio::select! {
         _ = tokio::signal::ctrl_c() => {
             slog::info!(logger, "shutting down application");

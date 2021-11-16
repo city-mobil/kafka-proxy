@@ -43,12 +43,14 @@ pub struct KafkaProxyConfig {
 
     #[serde(default)]
     kafka: kafka::kafka::config::KafkaConfig,
+
+    #[serde(default)]
+    ratelimit: ratelimit::config::Config,
 }
 
 impl KafkaProxyConfig {
     pub fn new(arg_matches: clap::ArgMatches) -> KafkaProxyConfig {
         let config_file = arg_matches.value_of("config").unwrap();
-        // NOTE(a.petrukhin): default initialization.
         let config = KafkaProxyConfig::initialize_config(&String::from(config_file));
         if config.is_err() {
             panic!(
@@ -84,6 +86,10 @@ impl KafkaProxyConfig {
 
     pub fn get_kafka_config(&self) -> kafka::kafka::config::KafkaConfig {
         self.kafka.clone()
+    }
+
+    pub fn get_ratelimit_config(&self) -> ratelimit::config::Config {
+        self.ratelimit.clone()
     }
 }
 
@@ -131,21 +137,53 @@ impl HttpConfig {
 mod tests {
     use crate::config::KafkaProxyConfig;
 
-    #[test]
-    fn test_kafkaproxy_config_new() {
-        //
-        let config_path = String::from("testdata/config.yaml");
-        let config = KafkaProxyConfig::initialize_config(&config_path);
+    fn prepare_config(config_path: &String) -> KafkaProxyConfig {
+        let config = KafkaProxyConfig::initialize_config(config_path);
         assert_eq!(
             config.is_err(),
             false,
             "failed to initialize kafka-proxy config: got error: {}",
             config.err().unwrap().to_string()
         );
-        let config_unwrapped = config.unwrap();
-        assert_eq!(config_unwrapped.http.port.unwrap(), 4242);
-        assert_eq!(config_unwrapped.http.metrics_port.unwrap(), 8089);
-        assert_eq!(config_unwrapped.kafka.request_required_acks.unwrap(), 1);
-        assert_eq!(config_unwrapped.kafka.queue_buffering_max_ms.unwrap(), 20);
+
+        config.unwrap()
+    }
+
+    #[test]
+    fn test_kafkaproxy_config_new() {
+        let config_path = String::from("testdata/kafka_config.yaml");
+        let config = prepare_config(&config_path);
+
+        assert_eq!(config.http.port.unwrap(), 4242); // default value
+        assert_eq!(config.kafka.brokers.len(), 1);
+        assert_eq!(config.http.metrics_port.unwrap(), 8089);
+        assert_eq!(config.kafka.request_required_acks.unwrap(), 1);
+        assert_eq!(config.kafka.queue_buffering_max_ms.unwrap(), 20);
+    }
+
+    #[test]
+    fn test_kafkaproxy_config_ratelimit() {
+        let config_path = String::from("testdata/ratelimit.yaml");
+        let config = prepare_config(&config_path);
+
+        assert_eq!(config.ratelimit.enabled(), true);
+        assert_eq!(config.ratelimit.get_rules().len(), 2);
+    }
+
+    #[test]
+    fn test_kafkaproxy_config() {
+        let config_path = String::from("testdata/config.yaml");
+        let config = prepare_config(&config_path);
+
+        assert_eq!(config.http.port.unwrap(), 4242); // default value
+        assert_eq!(config.http.metrics_port.unwrap(), 8089);
+
+        assert_eq!(config.kafka.brokers.len(), 1);
+        assert_eq!(config.kafka.request_required_acks.unwrap(), 1);
+        assert_eq!(config.kafka.queue_buffering_max_ms.unwrap(), 20);
+        assert_eq!(config.kafka.queue_buffering_max_kbytes.unwrap(), 2048);
+
+        assert_eq!(config.ratelimit.enabled(), true);
+        assert_eq!(config.ratelimit.get_rules().len(), 2);
     }
 }

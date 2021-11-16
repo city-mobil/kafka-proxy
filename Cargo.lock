@@ -992,6 +992,7 @@ dependencies = [
 name = "ratelimit"
 version = "0.1.0"
 dependencies = [
+ "serde 1.0.126",
  "tokio",
 ]
 
