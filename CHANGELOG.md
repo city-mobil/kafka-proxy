@@ -1,6 +1,14 @@
 Change log
 ==========
 
+0.2.4 (2021-11-16)
+-------------------
+
+### Features
+
+- [metrics] add app version
+- [log] remove requests from logs
+
 0.2.0 (2021-08-25)
 -------------------
 
