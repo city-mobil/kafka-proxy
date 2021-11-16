@@ -2,6 +2,34 @@ use crate::kafka;
 use config::{Config, ConfigError};
 use serde::Deserialize;
 
+#[derive(Clone)]
+pub struct AppMetadata {
+    // App version
+    version: String,
+
+    // Git commit hash
+    commit: String,
+}
+
+impl AppMetadata {
+    pub fn get_version(&self) -> String {
+        self.version.clone()
+    }
+
+    pub fn get_commit_hash(&self) -> String {
+        self.commit.clone()
+    }
+}
+
+impl Default for AppMetadata {
+    fn default() -> Self {
+        AppMetadata {
+            version: env!("APP_VERSION").to_string(),
+            commit: env!("GIT_COMMIT").to_string(),
+        }
+    }
+}
+
 #[derive(Deserialize)]
 pub struct KafkaProxyConfig {
     #[serde(default)]
@@ -9,6 +37,9 @@ pub struct KafkaProxyConfig {
 
     #[serde(default)]
     http: HttpConfig,
+
+    #[serde(default, skip_deserializing)]
+    app_info: AppMetadata,
 
     #[serde(default)]
     kafka: kafka::kafka::config::KafkaConfig,
@@ -43,6 +74,10 @@ impl KafkaProxyConfig {
 
     pub fn get_http_config(&self) -> HttpConfig {
         self.http.clone()
+    }
+
+    pub fn get_app_info(&self) -> AppMetadata {
+        self.app_info.clone()
     }
 
     pub fn get_output_file(&self) -> String {

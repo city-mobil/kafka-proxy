@@ -28,11 +28,17 @@ async fn main() {
     let args = app_args();
     let cfg = config::KafkaProxyConfig::new(args);
 
-    let http_config = cfg.get_http_config();
     let logger = kflog::new_logger(&cfg.get_output_file());
 
-    let http_server_config = http::server::Config::new(http_config.port());
-    let mut server = http::server::Server::new_from_config(http_server_config);
+    let app_info = cfg.get_app_info();
+    slog::info!(
+        logger,
+        "starting application";
+        "version" => app_info.get_version(),
+        "commit" => app_info.get_commit_hash(),
+    );
+
+    let mut http_server = init_http_server(cfg.get_http_config());
 
     let ratelimiter = ratelimit::Limiter::new(cfg.get_ratelimit_config());
 
@@ -44,7 +50,8 @@ async fn main() {
     let metrics_server = metrics::metrics::Server::new(metrics::metrics::ServerConfig {
         port: http_config.metrics_port(),
     });
-    let metrics_shutdown_rx = metrics_server.start_server(logger.clone(), shutdown_metrics_rx);
+    let metrics_shutdown_rx =
+        metrics_server.start_server(logger.clone(), shutdown_metrics_rx, app_info.clone());
 
     // TODO(shmel1k): improve graceful shutdown behavior.
     let main_server_shutdown_rx = server.start_server(
@@ -53,6 +60,7 @@ async fn main() {
         Arc::new(ratelimiter),
         shutdown_rx,
     );
+
     tokio::select! {
         _ = tokio::signal::ctrl_c() => {
             slog::info!(logger, "shutting down application");
@@ -62,4 +70,9 @@ async fn main() {
             main_server_shutdown_rx.await.ok();
         }
     }
+}
+
+fn init_http_server(http_config: config::HttpConfig) -> http::server::Server {
+    let http_server_config = http::server::Config::new(http_config.port());
+    http::server::Server::new_from_config(http_server_config)
 }

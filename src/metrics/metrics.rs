@@ -1,3 +1,4 @@
+use crate::config::AppMetadata;
 use crate::log::kflog;
 use crate::log::kflog::Logger;
 use crate::metrics::metrics;
@@ -53,11 +54,28 @@ impl Server {
         return Server { config };
     }
 
+    fn initialize_base_metrics(&self, app_info: AppMetadata) {
+        let app_version = &app_info.get_version() as &str;
+        let commit_hash = &app_info.get_commit_hash() as &str;
+        let labels = [app_version, commit_hash];
+
+        let app_metadata = prometheus::register_gauge_vec!(
+            "kprf_app_metadata",
+            "Kprf application metadata",
+            &["version", "commit_hash"]
+        )
+        .unwrap();
+        app_metadata.with_label_values(&labels).set(0.0);
+    }
+
     pub fn start_server(
         &self,
         logger: kflog::Logger,
         shutdown_rx: Receiver<String>,
+        app_info: AppMetadata,
     ) -> Receiver<i8> {
+        self.initialize_base_metrics(app_info);
+
         let route = warp::path!("metrics")
             .and(metrics::with_logger(logger.clone()))
             .and_then(metrics::handler);
