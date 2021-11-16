@@ -54,32 +54,32 @@ curl 'http://127.0.0.1:4242/push' -H 'Content-Type: application/json' -d '{"reco
 ```
 
 JSON Fields:
-- `records` - describes records for further producing.
-- `records[i].topic` - describes some kafka topic for producing.
-- `records[i].data` -  describes some string data. Can be JSON, XML or anything.
-- `wait_for_send` - describes if http-producer client has to wait for delivery result or not.
+- `records` – describes records for further producing.
+- `records[i].topic` – describes some kafka topic for producing.
+- `records[i].data` –  describes some string data. Can be JSON, XML or anything.
+- `wait_for_send` – describes if http-producer client has to wait for delivery result or not.
 If false, message is produced asynchronously. Otherwise, synchronously. Default value is `false`
 
 ## Configuration
 
 At this moment, this options from [librdkafka](https://github.com/edenhill/librdkafka/blob/master/CONFIGURATION.md) are supported:
 
-- `kafka.brokers` - alias for `bootstrap.servers` from librdkafka. Default value is empty array.
-- `kafka.user` - alias for `sasl.username` from librdkafka. Default value is empty string.
-- `kafka.password` - alias for `sasl.password` from librdkafka. Default value is empty string.
-- `kafka.message_max_bytes` - alias for `message.max.bytes` from librdkafka. Default value is `1 MiB`.
-- `kafka.queue_buffering_max_messages` - alias for `queue.buffering.max.messages` from librdkafka. Default value is `100000`.
-- `kafka.queue_buffering_max_ms` - alias for `queue.buffering.max.ms` from librdkafka. Default value is `10`.
-- `kafka.queue_buffering_max_kbytes` - alias for `queue.buffering.max.kbytes` from librdkafka. Default value is `1048576`.
-- `kafka.retries` - alias for `retries` from librdkafka. Default value is `3`.
-- `kafka.message_timeout_ms` - alias for `message.timeout.ms` from librdkafka. Default value is `2000`.
-- `kafka.request_timeout_ms` - alias for `request.timeout.ms` from librdkafka. Default value is `30000`.
-- `kafka.request_required_acks` - alias for `request.required.acks` from librdkafka. Default value is `-1`.
-- `http.port` - port for HTTP server for producing messages. Default value is `4242`
-- `http.metrics_port` - port for HTTP server for metrics. Default value is `8088`
-- `output_file` - output file for logging. Default value is `/dev/stdout`
-- `ratelimit.enabled` - enable or disable rate limits. Default value is `false`
-- `ratelimit.rules` - rules for rate limits. Default value is `[]`
+- `kafka.brokers` – alias for `bootstrap.servers` from librdkafka. Default value is empty array.
+- `kafka.user` – alias for `sasl.username` from librdkafka. Default value is empty string.
+- `kafka.password` – alias for `sasl.password` from librdkafka. Default value is empty string.
+- `kafka.message_max_bytes` – alias for `message.max.bytes` from librdkafka. Default value is `1 MiB`.
+- `kafka.queue_buffering_max_messages` – alias for `queue.buffering.max.messages` from librdkafka. Default value is `100000`.
+- `kafka.queue_buffering_max_ms` – alias for `queue.buffering.max.ms` from librdkafka. Default value is `10`.
+- `kafka.queue_buffering_max_kbytes` – alias for `queue.buffering.max.kbytes` from librdkafka. Default value is `1048576`.
+- `kafka.retries` – alias for `retries` from librdkafka. Default value is `3`.
+- `kafka.message_timeout_ms` – alias for `message.timeout.ms` from librdkafka. Default value is `2000`.
+- `kafka.request_timeout_ms` – alias for `request.timeout.ms` from librdkafka. Default value is `30000`.
+- `kafka.request_required_acks` – alias for `request.required.acks` from librdkafka. Default value is `-1`.
+- `http.port` – port for HTTP server for producing messages. Default value is `4242`
+- `http.metrics_port` – port for HTTP server for metrics. Default value is `8088`
+- `output_file` – output file for logging. Default value is `/dev/stdout`
+- `ratelimit.enabled` – enable or disable rate limits. Default value is `false`
+- `ratelimit.rules` – rules for rate limits. Default value is `[]`
 
 ### Example configuration
 ```yaml
@@ -164,42 +164,43 @@ All metrics are available in OpenMetrics(prometheus) format on `:8088` port(non-
 
 At this moment(v0.1.0) these metrics are available:
 
-- `http_requests_duration` - Histogram of HTTP requests. Label `push/sync` is set when message produced asynchronously, 
+- `http_requests_duration` – Histogram of HTTP requests. Label `push/sync` is set when message produced asynchronously, 
 otherwise, `push/async` is set. `code` label is set according to HTTP response status.
-- `kafka_internal_queue_size` - Gauge of internal kafka-queue size, per topic.
-- `kafka_message_send_duration` - Histogram of kafka message duration before delivery result callback is received, per topic.
-- `kafka_sent_messages` - Counter of total kafka messages sent, per topic.
-- `kafka_errors_count` - Counter of total kafka errors, per topic.
-- `ratelimit_messages_count` - Counter of total ratelimited messages, per topic.
+- `kafka_internal_queue_size` – Gauge of internal kafka-queue size, per topic.
+- `kafka_message_send_duration` – Histogram of kafka message duration before delivery result callback is received, per topic.
+- `kafka_sent_messages` – Counter of total kafka messages sent, per topic.
+- `kafka_errors_count` – Counter of total kafka errors, per topic.
+- `ratelimit_messages_count` – Counter of total ratelimited messages, per topic.
 
 Kafka librdkafka metrics:
-- `kafka_producer_reply_queue_size` - Operations (callbacks, events, etc.) waiting in queue.
-- `kafka_producer_current_messages_in_queue` - Current number of messages in producer queues.
-- `kafka_producer_current_messages_in_queue_bytes` - Current total size of messages in producer queues.
-- `kafka_producer_total_requests_count` - Total number of requests sent to brokers
-- `kafka_producer_total_bytes_sent` - Total number of bytes transmitted to brokers
-- `kafka_producer_total_responses_received` - Total number of responses received from brokers
-- `kafka_producer_total_bytes_received` - Total number of bytes received from brokers
-- `kafka_producer_total_messages_sent` - Total number of messages transmitted (produced) to brokers
-- `kafka_producer_total_messages_bytes_sent` - Total number of bytes transmitted (produced) to brokers
-- `kafka_producer_metadata_cache_topics_count` - Number of topics in the metadata cache
-- `kafka_producer_broker_state` - Broker state (INIT, DOWN, CONNECT, AUTH, APIVERSION_QUERY, AUTH_HANDSHAKE, UP, UPDATE).
-- `kafka_producer_broker_state_age` - The time since the last broker state change, in microseconds
-- `kafka_producer_broker_outbuf_count` - Number of requests awaiting transmission to the broker
-- `kafka_producer_broker_outbuf_msg_count` - Number of messages awaiting transmission to the broker
-- `kafka_producer_broker_waitresp_count` - Number of requests in-flight to the broker that are awaiting response
-- `kafka_producer_broker_waitresp_msg_count` - Number of messages awaiting transmission to the broker
-- `kafka_producer_broker_requests_sent` - Total number of requests sent to the broker
-- `kafka_producer_broker_requests_sent_bytes` - Total number of bytes sent to the broker
-- `kafka_producer_broker_transmission_errors` - Total number of transmission errors
-- `kafka_producer_broker_request_retries` - Total number of request retries
-- `kafka_producer_request_timeouts` - Total number of requests that timed out
-- `kafka_producer_broker_responses_count` - Total number of responses received from the broker
-- `kafka_producer_broker_bytes_received` - Total number of bytes received from the broker
-- `kafka_producer_broker_errors_count` - Total number of received errors
-- `kafka_producer_topic_metadata_age` - The age of the client's metadata for this topic, in milliseconds
-- `kafka_producer_topic_batchsize_avg` - Rolling window statistics for batch sizes, in bytes
-- `kafka_producer_topic_batchcount_avg` - Rolling window statistics for batch message counts
+- `kafka_producer_reply_queue_size` – Operations (callbacks, events, etc.) waiting in queue.
+- `kafka_producer_current_messages_in_queue` – Current number of messages in producer queues.
+- `kafka_producer_current_messages_in_queue_bytes` – Current total size of messages in producer queues.
+- `kafka_producer_total_requests_count` – Total number of requests sent to brokers
+- `kafka_producer_total_bytes_sent` – Total number of bytes transmitted to brokers
+- `kafka_producer_total_responses_received` – Total number of responses received from brokers
+- `kafka_producer_total_bytes_received` – Total number of bytes received from brokers
+- `kafka_producer_total_messages_sent` – Total number of messages transmitted (produced) to brokers
+- `kafka_producer_total_messages_bytes_sent` – Total number of bytes transmitted (produced) to brokers
+- `kafka_producer_metadata_cache_topics_count` – Number of topics in the metadata cache
+- `kafka_producer_broker_state` – Broker state (INIT, DOWN, CONNECT, AUTH, APIVERSION_QUERY, AUTH_HANDSHAKE, UP, UPDATE).
+- `kafka_producer_broker_state_age` – The time since the last broker state change, in microseconds
+- `kafka_producer_broker_outbuf_count` – Number of requests awaiting transmission to the broker
+- `kafka_producer_broker_outbuf_msg_count` – Number of messages awaiting transmission to the broker
+- `kafka_producer_broker_waitresp_count` – Number of requests in-flight to the broker that are awaiting response
+- `kafka_producer_broker_waitresp_msg_count` – Number of messages awaiting transmission to the broker
+- `kafka_producer_broker_requests_sent` – Total number of requests sent to the broker
+- `kafka_producer_broker_requests_sent_bytes` – Total number of bytes sent to the broker
+- `kafka_producer_broker_transmission_errors` – Total number of transmission errors
+- `kafka_producer_broker_request_retries` – Total number of request retries
+- `kafka_producer_request_timeouts` – Total number of requests that timed out
+- `kafka_producer_broker_responses_count` – Total number of responses received from the broker
+- `kafka_producer_broker_bytes_received` – Total number of bytes received from the broker
+- `kafka_producer_broker_errors_count` – Total number of received errors
+- `kafka_producer_topic_metadata_age` – The age of the client's metadata for this topic, in milliseconds
+- `kafka_producer_topic_batchsize_avg` – Rolling window statistics for batch sizes, in bytes
+- `kafka_producer_topic_batchcount_avg` – Rolling window statistics for batch message counts
+- `kprf_app_metadata` – KPRF application metadata (commit_hash, version)
 
 ## Further improvements
 
