@@ -5,7 +5,16 @@ kafka:
   queue_buffering_max_ms: 20
   queue_buffering_max_kbytes: 2048 # 2 MiB
 
+ratelimit:
+  enabled: true
+  rules:
+    - topic_name: "some_topic_name"
+      max_requests_per_minute: 42
+    - topic_name: "some_topic_name_2"
+      max_requests_per_minute: 42
+
 http:
+  port: 4242
   metrics_port: 8089
 
 output_file: "/dev/stdout"

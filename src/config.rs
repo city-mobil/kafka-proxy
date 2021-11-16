@@ -172,7 +172,7 @@ mod tests {
 
     #[test]
     fn test_kafkaproxy_config() {
-        let config_path = String::from("testdata/config.yaml");
+        let config_path = String::from("testdata/kafka_config.yaml");
         let config = prepare_config(&config_path);
 
         assert_eq!(config.http.port.unwrap(), 4242); // default value

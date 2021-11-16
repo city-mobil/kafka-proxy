@@ -38,7 +38,8 @@ async fn main() {
         "commit" => app_info.get_commit_hash(),
     );
 
-    let mut http_server = init_http_server(cfg.get_http_config());
+    let http_config = cfg.get_http_config();
+    let mut http_server = init_http_server(http_config.clone());
 
     let ratelimiter = ratelimit::Limiter::new(cfg.get_ratelimit_config());
 
@@ -54,7 +55,7 @@ async fn main() {
         metrics_server.start_server(logger.clone(), shutdown_metrics_rx, app_info.clone());
 
     // TODO(shmel1k): improve graceful shutdown behavior.
-    let main_server_shutdown_rx = server.start_server(
+    let main_server_shutdown_rx = http_server.start_server(
         logger.clone(),
         kafka_producer.clone(),
         Arc::new(ratelimiter),

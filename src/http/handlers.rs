@@ -76,7 +76,7 @@ mod handler {
                 slog::error!(logger,
                     "got error when tried to get duration_since";
                     "error" => e.to_string(),
-                    "request_id" => request_id,
+                    "request_id" => request_id.clone(),
                 );
                 0.0
             }
@@ -104,7 +104,7 @@ mod handler {
             slog::warn!(
                 logger,
                 "handle_push was too slow";
-                "request_id" => request_id,
+                "request_id" => request_id.clone(),
                 "passed" => (passed).to_string() + "ms",
             );
         }
