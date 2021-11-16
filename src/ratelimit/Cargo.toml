@@ -1,10 +1,15 @@
 [package]
 name = "ratelimit"
 version = "0.1.0"
-authors = ["Aleksandr Petrukhin <a.petrukhin@city-mobil.ru>"]
+authors = ["Aleksandr Petrukhin <shmeleine@gmail.com>"]
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 tokio = "1.5.0"
+serde = { version = "1.0.101", optional = true, features = ["derive"] }
+
+[features]
+default = ["std"]
+std = [ "serde" ]

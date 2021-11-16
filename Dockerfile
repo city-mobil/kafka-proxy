@@ -13,7 +13,8 @@ RUN apt update
 RUN apt install -y \
     build-essential \
     curl \
-    cmake
+    cmake \
+    make
 
 RUN apt-get update
 
@@ -22,7 +23,7 @@ RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
 WORKDIR /kprf
 COPY . ./
 
-RUN cargo build --release
+RUN make
 
 FROM ubuntu:20.04
 

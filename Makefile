@@ -1,7 +1,8 @@
 all: build
 
-build:
-	cargo build
+build: build_release
+
+build_with_tests: test build_release
 
 build_release:
 	cargo build --release
@@ -11,3 +12,6 @@ run_debug:
 
 clean:
 	cargo clean
+
+test:
+	cargo test --workspace && cargo test --package ratelimit --lib tests
