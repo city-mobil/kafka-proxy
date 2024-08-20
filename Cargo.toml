@@ -5,26 +5,30 @@ authors = [
     "Aleksandr Petrukhin <shmeleine@gmail.com>",
     "Artem Beliankin <log.wil.log@gmail.com>",
 ]
-edition = "2018"
+edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-config = "0.11"
-clap = "2.33.3"
-yaml-rust = "0.4.5"
-tokio = { version = "1", features = ["full"] }
+config = "0.14"
+clap = { version = "4.5", features = ["derive"] }
+clap_derive = { version = "4.0.0-rc.1" }
+yaml-rust = "0.4"
+tokio = { version = "1.39", features = ["full"] }
 warp = "0.3"
-serde = { version = "1.0.101", optional = true, features = ["derive"] }
-rdkafka = { version = "0.25", features = ["cmake-build"] }
-slog-json = "2.3.0"
-slog = { version = "2.7.0", features = ["release_max_level_info"] }
-slog-async = "2.6.0"
-slog-term = "2.8.0"
-prometheus = "0.12.0"
-lazy_static = "1.4.0"
-uuid = { version = "0.8", features = ["serde", "v4"] }
+serde = { version = "1.0", optional = true, features = ["derive"] }
+rdkafka = { version = "0.36" } 
+slog-json = "2.6"
+slog = { version = "2.7", features = ["release_max_level_info"] }
+slog-async = "2.8"
+slog-term = "2.9"
+prometheus = "0.13"
+lazy_static = "1.4"
+uuid = { version = "1.10", features = ["serde", "v4"] }
 ratelimit = { path = "src/ratelimit" }
+
+[target.'cfg(not(target_os = "macos"))'.dependencies]
+rdkafka = { version = "0.36", features = ["cmake-build"] }
 
 [features]
 default = ["std"]

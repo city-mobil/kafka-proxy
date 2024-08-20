@@ -16,7 +16,7 @@ One of the easiest solutions is to use some external http-proxy. This is where '
 
 ## Setup
 
-`rustc 1.51.0` is required to build kafka-proxy.
+`rustc 1.80.1` is required to build kafka-proxy.
 
 - To build debug version of kafka-proxy:
 ```shell

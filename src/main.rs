@@ -5,28 +5,22 @@ mod log;
 mod metrics;
 
 use crate::log::kflog;
-use clap::ArgMatches;
+use clap::Parser;
 use std::sync::Arc;
 use tokio::sync::oneshot;
 
-fn app_args<'a>() -> ArgMatches<'a> {
-    return clap::App::new("kprf")
-        .version(clap::crate_version!())
-        .about("Kafka Producer Proxy")
-        .arg(
-            clap::Arg::with_name("config")
-                .short("c")
-                .long("config")
-                .help("Config file path")
-                .takes_value(true),
-        )
-        .get_matches();
+/// Kafka Producer Proxy
+#[derive(Parser)]
+#[command(version, about, long_about = None)]
+pub struct App {
+    #[arg(short, long, help = "Config file path")]
+    pub config: std::path::PathBuf,
 }
 
 #[tokio::main]
 async fn main() {
-    let args = app_args();
-    let cfg = config::KafkaProxyConfig::new(args);
+    let app = App::parse();
+    let cfg = config::KafkaProxyConfig::new(&app);
 
     let logger = kflog::new_logger(&cfg.get_output_file());
 

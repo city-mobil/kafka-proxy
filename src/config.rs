@@ -1,4 +1,4 @@
-use crate::kafka;
+use crate::{kafka, App};
 use config::{Config, ConfigError};
 use serde::Deserialize;
 
@@ -49,8 +49,8 @@ pub struct KafkaProxyConfig {
 }
 
 impl KafkaProxyConfig {
-    pub fn new(arg_matches: clap::ArgMatches) -> KafkaProxyConfig {
-        let config_file = arg_matches.value_of("config").unwrap();
+    pub fn new(app: &App) -> KafkaProxyConfig {
+        let config_file = app.config.to_str().unwrap();
         let config = KafkaProxyConfig::initialize_config(&String::from(config_file));
         if config.is_err() {
             panic!(
@@ -62,14 +62,11 @@ impl KafkaProxyConfig {
     }
 
     fn initialize_config(config_path: &String) -> Result<Self, ConfigError> {
-        let mut cfg = Config::default();
+        let cfg = Config::builder()
+            .add_source(config::File::with_name(config_path))
+            .build()?;
 
-        let merge_result = cfg.merge(config::File::with_name(config_path));
-        if merge_result.is_err() {
-            return Err(merge_result.err().unwrap());
-        }
-
-        cfg.try_into()
+        cfg.try_deserialize::<Self>()
     }
 
     pub fn get_http_config(&self) -> HttpConfig {
